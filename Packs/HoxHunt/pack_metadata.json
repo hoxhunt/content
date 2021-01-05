@@ -1,0 +1,19 @@
+{
+    "name": "HoxHunt",
+    "description": "Integration for the HoxHunt platform.",
+    "support": "community",
+    "currentVersion": "1.0.0",
+    "author": "HoxHunt",
+    "url": "https://live.paloaltonetworks.com/t5/cortex-xsoar-discussions/bd-p/Cortex_XSOAR_Discussions",
+    "email": "",
+    "created": "2021-01-05T12:04:27Z",
+    "categories": [
+        "Analytics & SIEM"
+    ],
+    "tags": [],
+    "useCases": [],
+    "keywords": [],
+    "githubUser": [
+        "kallja"
+    ]
+}
