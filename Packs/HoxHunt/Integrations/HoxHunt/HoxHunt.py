@@ -1,26 +1,14 @@
-"""Base Integration for Cortex XSOAR (aka Demisto)
-
-This is an empty Integration with some basic structure according
-to the code conventions.
-
-MAKE SURE YOU REVIEW/REPLACE ALL THE COMMENTS MARKED AS "TODO"
-
-Developer Documentation: https://xsoar.pan.dev/docs/welcome
-Code Conventions: https://xsoar.pan.dev/docs/integrations/code-conventions
-Linting: https://xsoar.pan.dev/docs/integrations/linting
-
-This is an empty structure file. Check an example at;
-https://github.com/demisto/content/blob/master/Packs/HelloWorld/Integrations/HelloWorld/HelloWorld.py
-
-"""
+import json
 
 import demistomock as demisto
 from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
 from CommonServerUserPython import *  # noqa
 
+import dateparser
 import requests
 import traceback
-from typing import Dict, Any
+
+from typing import Dict, Any, List, Tuple
 
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
@@ -28,145 +16,174 @@ requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 
 ''' CONSTANTS '''
 
-DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'  # ISO8601 format with UTC, default in XSOAR
+DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 ''' CLIENT CLASS '''
 
 
-class Client(BaseClient):
-    """Client class to interact with the service API
-
-    This Client implements API calls, and does not contain any XSOAR logic.
-    Should only do requests and return data.
-    It inherits from BaseClient defined in CommonServer Python.
-    Most calls use _http_request() that handles proxy, SSL verification, etc.
-    For this  implementation, no special attributes defined
-    """
-
-    # TODO: REMOVE the following dummy function:
-    def baseintegration_dummy(self, dummy: str) -> Dict[str, str]:
-        """Returns a simple python dict with the information provided
-        in the input (dummy).
-
-        :type dummy: ``str``
-        :param dummy: string to add in the dummy dict that is returned
-
-        :return: dict as {"dummy": dummy}
-        :rtype: ``str``
-        """
-
-        return {"dummy": dummy}
-    # TODO: ADD HERE THE FUNCTIONS TO INTERACT WITH YOUR PRODUCT API
+StrDict = Dict[str, str]
+AnyDict = Dict[str, Any]
 
 
-''' HELPER FUNCTIONS '''
+class HoxHuntException(Exception):
+    def __init__(self, err: requests.exceptions.HTTPError):
+        super().__init__(err)
+        self.status_code = err.response.status_code
+        self.response = err.response.json()
 
-# TODO: ADD HERE ANY HELPER FUNCTION YOU MIGHT NEED (if any)
-
-''' COMMAND FUNCTIONS '''
-
-
-def test_module(client: Client) -> str:
-    """Tests API connectivity and authentication'
-
-    Returning 'ok' indicates that the integration works like it is supposed to.
-    Connection to the service is successful.
-    Raises exceptions if something goes wrong.
-
-    :type client: ``Client``
-    :param Client: client to use
-
-    :return: 'ok' if test passed, anything else will fail the test.
-    :rtype: ``str``
-    """
-
-    message: str = ''
-    try:
-        # TODO: ADD HERE some code to test connectivity and authentication to your service.
-        # This  should validate all the inputs given in the integration configuration panel,
-        # either manually or by using an API that uses them.
-        message = 'ok'
-    except DemistoException as e:
-        if 'Forbidden' in str(e) or 'Authorization' in str(e):  # TODO: make sure you capture authentication errors
-            message = 'Authorization Error: make sure API Key is correctly set'
-        else:
-            raise e
-    return message
+    def __str__(self):
+        return f'<HTTP {self.status_code}>: {self.response}'
 
 
-# TODO: REMOVE the following dummy command function
-def baseintegration_dummy_command(client: Client, args: Dict[str, Any]) -> CommandResults:
+class HoxHuntAPIClient:
+    AUTH_HEADER_NAME = 'Authorization'
+    AUTH_TOKEN_TYPE = 'Authtoken'
 
-    dummy = args.get('dummy', None)
-    if not dummy:
-        raise ValueError('dummy not specified')
+    DEFAULT_SORT = 'createdAt_ASC'
 
-    # Call the Client function and get the raw response
-    result = client.baseintegration_dummy(dummy)
+    def __init__(self, api_url: str, api_key: str):
+        super().__init__()
+        self.api_url = api_url
+        self.api_key = api_key
 
-    return CommandResults(
-        outputs_prefix='BaseIntegration',
-        outputs_key_field='',
-        outputs=result,
-    )
-# TODO: ADD additional command functions that translate XSOAR inputs/outputs to Client
+    def do_test_request(self) -> None:
+        self._do_request(
+            query="""
+            query getMe {
+                currentUser {
+                    emails {
+                        address
+                    }
+                }
+            }
+            """
+        )
+
+    def do_get_incidents_request(self, page_size: int) -> List[AnyDict]:
+        response = self._do_request(
+            query="""
+                query getIncidentsBasicInfo($first: Int, $sort: String) {
+                    incidents(first: $first, sort: $sort) {
+                        _id
+                        createdAt
+                        updatedAt
+                        lastReportedAt
+                        humanReadableId
+                        policyName
+                        severity
+                        state
+                        threatCount
+                    }
+                }
+            """,
+            variables={
+                'first': page_size,
+                'sort': self.DEFAULT_SORT
+            }
+        )
+
+        return response['incidents']
+
+    def _do_request(self, query: str, variables: AnyDict = None) -> AnyDict:
+        try:
+            response = requests.post(
+                url=self.api_url,
+                json={
+                    'query': query,
+                    'variables': variables or {}
+                },
+                headers={
+                    self.AUTH_HEADER_NAME: f'{self.AUTH_TOKEN_TYPE} {self.api_key}'
+                }
+            )
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise HoxHuntException(e)
+
+        return response.json()['data']
 
 
-''' MAIN FUNCTION '''
+def test_module_command(client: HoxHuntAPIClient):
+    client.do_test_request()
+    return 'ok'
+
+
+def fetch_incidents_command(
+        client: HoxHuntAPIClient,
+        last_run: StrDict,
+        command_args: AnyDict
+) -> Tuple[StrDict, List[AnyDict]]:
+
+    since_time = command_args.get('since_time')
+    page_size = command_args.get('page_size')
+
+    last_fetch_str = last_run.get('last_fetch')
+    last_fetch = None
+
+    if last_fetch_str:
+        last_fetch = dateparser.parse(last_fetch_str)
+    elif since_time:
+        last_fetch = dateparser.parse(since_time)
+
+    latest_created_at = last_fetch
+
+    xsoar_incidents = []
+    hoxhunt_incidents = client.do_get_incidents_request(page_size=page_size)
+
+    for hoxhunt_incident in hoxhunt_incidents:
+        created_at = dateparser.parse(hoxhunt_incident['createdAt'])
+
+        xsoar_incident = {
+            'name': hoxhunt_incident['humanReadableId'],
+            'occurred': created_at.strftime(DATE_FORMAT),
+            'rawJSON': json.dumps(hoxhunt_incident)
+        }
+
+        xsoar_incidents.append(xsoar_incident)
+
+        if not latest_created_at or (created_at > latest_created_at):
+            latest_created_at = created_at
+
+    next_run = {'last_fetch': latest_created_at.strftime(DATE_FORMAT)}
+
+    return next_run, xsoar_incidents
 
 
 def main() -> None:
-    """main function, parses params and runs command functions
+    api_url = demisto.params().get('api_url')
+    api_key = demisto.params().get('api_key')
 
-    :return:
-    :rtype:
-    """
+    command = demisto.command()
 
-    # TODO: make sure you properly handle authentication
-    # api_key = demisto.params().get('apikey')
+    demisto.debug(f'Command being called is {command}')
 
-    # get the service API url
-    base_url = urljoin(demisto.params()['url'], '/api/v1')
+    client = HoxHuntAPIClient(
+        api_url=api_url,
+        api_key=api_key
+    )
 
-    # if your Client class inherits from BaseClient, SSL verification is
-    # handled out of the box by it, just pass ``verify_certificate`` to
-    # the Client constructor
-    verify_certificate = not demisto.params().get('insecure', False)
-
-    # if your Client class inherits from BaseClient, system proxy is handled
-    # out of the box by it, just pass ``proxy`` to the Client constructor
-    proxy = demisto.params().get('proxy', False)
-
-    demisto.debug(f'Command being called is {demisto.command()}')
     try:
 
-        # TODO: Make sure you add the proper headers for authentication
-        # (i.e. "Authorization": {api key})
-        headers: Dict = {}
+        if command == 'test-module':
+            msg = test_module_command(client)
+            return_results(msg)
 
-        client = Client(
-            base_url=base_url,
-            verify=verify_certificate,
-            headers=headers,
-            proxy=proxy)
+        elif command == 'fetch-incidents':
+            last_run = demisto.getLastRun()
+            command_args = demisto.args()
 
-        if demisto.command() == 'test-module':
-            # This is the call made when pressing the integration Test button.
-            result = test_module(client)
-            return_results(result)
+            next_run, incidents = fetch_incidents_command(
+                client=client,
+                last_run=last_run,
+                command_args=command_args
+            )
 
-        # TODO: REMOVE the following dummy command case:
-        elif demisto.command() == 'baseintegration-dummy':
-            return_results(baseintegration_dummy_command(client, demisto.args()))
-        # TODO: ADD command cases for the commands you will implement
+            demisto.setLastRun(next_run)
+            demisto.incidents(incidents)
 
-    # Log exceptions and return errors
     except Exception as e:
-        demisto.error(traceback.format_exc())  # print the traceback
-        return_error(f'Failed to execute {demisto.command()} command.\nError:\n{str(e)}')
-
-
-''' ENTRY POINT '''
+        demisto.error(traceback.format_exc())
+        return_error(f'Failed to execute {command} command.\nError:\n{str(e)}')
 
 
 if __name__ in ('__main__', '__builtin__', 'builtins'):
