@@ -1,6 +1,6 @@
 category: Utilities
 commonfields:
-  id: HoxHunt
+  id: Hoxhunt
   version: -1
 configuration:
 - defaultvalue: https://example.com/
@@ -23,8 +23,8 @@ configuration:
   type: 8
 description: '[Enter a comprehensive, yet concise, description of what the integration
   does, what use cases it is designed for, etc.]'
-display: HoxHunt
-name: HoxHunt
+display: Hoxhunt
+name: Hoxhunt
 script:
   commands:
   - arguments:

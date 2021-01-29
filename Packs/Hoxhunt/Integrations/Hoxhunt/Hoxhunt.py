@@ -1,9 +1,8 @@
-import json
-
 import demistomock as demisto
 from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
 from CommonServerUserPython import *  # noqa
 
+import json
 import dateparser
 import requests
 import traceback
@@ -13,19 +12,13 @@ from typing import Dict, Any, List, Tuple
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 
-
-''' CONSTANTS '''
-
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
-
-''' CLIENT CLASS '''
-
 
 StrDict = Dict[str, str]
 AnyDict = Dict[str, Any]
 
 
-class HoxHuntException(Exception):
+class HoxhuntException(Exception):
     def __init__(self, err: requests.exceptions.HTTPError):
         super().__init__(err)
         self.status_code = err.response.status_code
@@ -35,7 +28,7 @@ class HoxHuntException(Exception):
         return f'<HTTP {self.status_code}>: {self.response}'
 
 
-class HoxHuntAPIClient:
+class HoxhuntAPIClient:
     AUTH_HEADER_NAME = 'Authorization'
     AUTH_TOKEN_TYPE = 'Authtoken'
 
@@ -98,23 +91,23 @@ class HoxHuntAPIClient:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise HoxHuntException(e)
+            raise HoxhuntException(e)
 
         return response.json()['data']
 
 
-def test_module_command(client: HoxHuntAPIClient):
+def test_module_command(client: HoxhuntAPIClient):
     client.do_test_request()
     return 'ok'
 
 
 def fetch_incidents_command(
-        client: HoxHuntAPIClient,
+        client: HoxhuntAPIClient,
         last_run: StrDict,
-        command_args: AnyDict
+        command_args: AnyDict,
+        command_params: AnyDict
 ) -> Tuple[StrDict, List[AnyDict]]:
-
-    since_time = command_args.get('since_time')
+    since_time = command_params.get('since_time')
     page_size = command_args.get('page_size')
 
     last_fetch_str = last_run.get('last_fetch')
@@ -150,14 +143,17 @@ def fetch_incidents_command(
 
 
 def main() -> None:
-    api_url = demisto.params().get('api_url')
-    api_key = demisto.params().get('api_key')
-
     command = demisto.command()
+
+    command_args = demisto.args()
+    command_params = demisto.params()
+
+    api_url = command_params.get('api_url')
+    api_key = command_params.get('api_key')
 
     demisto.debug(f'Command being called is {command}')
 
-    client = HoxHuntAPIClient(
+    client = HoxhuntAPIClient(
         api_url=api_url,
         api_key=api_key
     )
@@ -170,12 +166,12 @@ def main() -> None:
 
         elif command == 'fetch-incidents':
             last_run = demisto.getLastRun()
-            command_args = demisto.args()
 
             next_run, incidents = fetch_incidents_command(
                 client=client,
                 last_run=last_run,
-                command_args=command_args
+                command_args=command_args,
+                command_params=command_params
             )
 
             demisto.setLastRun(next_run)
