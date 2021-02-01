@@ -56,7 +56,7 @@ class HoxhuntAPIClient:
     def do_get_incidents_request(self, page_size: int) -> List[AnyDict]:
         response = self._do_request(
             query="""
-                query getIncidentsBasicInfo($first: Int, $sort: String) {
+                query getIncidentsBasicInfo($first: Int, $sort: [Incident_sort]) {
                     incidents(first: $first, sort: $sort) {
                         _id
                         createdAt
