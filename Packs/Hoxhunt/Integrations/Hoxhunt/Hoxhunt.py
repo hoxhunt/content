@@ -4,7 +4,6 @@ from CommonServerUserPython import *  # noqa
 
 import json
 import dateparser
-import datetime
 import requests
 import traceback
 
@@ -53,24 +52,30 @@ class HoxhuntAPIClient:
             """
         )
 
-    def do_get_incidents_request(self, page_size: int) -> List[AnyDict]:
+    def do_get_incidents_request(self, page_size: int, since: Optional[str]) -> List[AnyDict]:
         response = self._do_request(
             query="""
-                query getIncidentsBasicInfo($first: Int, $sort: [Incident_sort]) {
-                    incidents(first: $first, sort: $sort) {
+                query getIncidentsBasicInfo($filter: Incident_filter, $first: Int, $sort: [Incident_sort]) {
+                    incidents(filter: $filter, first: $first, sort: $sort) {
                         _id
                         createdAt
                         updatedAt
+                        firstReportedAt
                         lastReportedAt
                         humanReadableId
                         policyName
                         severity
                         state
                         threatCount
+                        escalation {
+                            escalatedAt
+                            creationThreshold
+                        }
                     }
                 }
             """,
             variables={
+                'filter': {'createdAt_gt': since} if since else {},
                 'first': page_size,
                 'sort': self.DEFAULT_SORT
             }
@@ -97,16 +102,6 @@ class HoxhuntAPIClient:
         return response.json()['data']
 
 
-def get_last_fetch_timestamp(last_run: StrDict, since_time: Optional[str]) -> Optional[datetime.datetime]:
-    last_fetch_str = last_run.get('last_fetch')
-
-    if last_fetch_str:
-        return dateparser.parse(last_fetch_str)
-    elif since_time:
-        return dateparser.parse(since_time)
-    return None
-
-
 def test_module_command(client: HoxhuntAPIClient):
     client.do_test_request()
     return 'ok'
@@ -115,12 +110,19 @@ def test_module_command(client: HoxhuntAPIClient):
 def fetch_incidents_command(
         client: HoxhuntAPIClient,
         page_size: int,
-        last_fetch: Optional[datetime.datetime]
+        last_run: StrDict,
+        since_time: Optional[str]
 ) -> Tuple[StrDict, List[AnyDict]]:
-    xsoar_incidents = []
-    hoxhunt_incidents = client.do_get_incidents_request(page_size=page_size)
+    last_fetch_str = last_run.get('last_fetch') or since_time
+    last_fetch = dateparser.parse(last_fetch_str) if last_fetch_str else None
 
+    xsoar_incidents = []
     latest_created_at = last_fetch
+
+    hoxhunt_incidents = client.do_get_incidents_request(
+        page_size=page_size,
+        since=last_fetch_str
+    )
 
     for hoxhunt_incident in hoxhunt_incidents:
         created_at = dateparser.parse(hoxhunt_incident['createdAt'])
@@ -162,12 +164,11 @@ def main() -> None:
             since_time = demisto.params().get('since_time')
             page_size = int(demisto.params().get('page_size'))
 
-            last_fetch = get_last_fetch_timestamp(last_run, since_time)
-
             next_run, incidents = fetch_incidents_command(
                 client=client,
                 page_size=page_size,
-                last_fetch=last_fetch
+                last_run=last_run,
+                since_time=since_time
             )
 
             demisto.setLastRun(next_run)
