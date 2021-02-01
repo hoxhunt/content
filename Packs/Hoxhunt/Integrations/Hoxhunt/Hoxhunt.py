@@ -4,10 +4,11 @@ from CommonServerUserPython import *  # noqa
 
 import json
 import dateparser
+import datetime
 import requests
 import traceback
 
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
@@ -96,6 +97,16 @@ class HoxhuntAPIClient:
         return response.json()['data']
 
 
+def get_last_fetch_timestamp(last_run: StrDict, since_time: Optional[str]) -> Optional[datetime.datetime]:
+    last_fetch_str = last_run.get('last_fetch')
+
+    if last_fetch_str:
+        return dateparser.parse(last_fetch_str)
+    elif since_time:
+        return dateparser.parse(since_time)
+    return None
+
+
 def test_module_command(client: HoxhuntAPIClient):
     client.do_test_request()
     return 'ok'
@@ -103,25 +114,13 @@ def test_module_command(client: HoxhuntAPIClient):
 
 def fetch_incidents_command(
         client: HoxhuntAPIClient,
-        last_run: StrDict,
-        command_args: AnyDict,
-        command_params: AnyDict
+        last_fetch: Optional[datetime.datetime],
+        args: AnyDict
 ) -> Tuple[StrDict, List[AnyDict]]:
-    since_time = command_params.get('since_time')
-    page_size = command_args.get('page_size')
-
-    last_fetch_str = last_run.get('last_fetch')
-    last_fetch = None
-
-    if last_fetch_str:
-        last_fetch = dateparser.parse(last_fetch_str)
-    elif since_time:
-        last_fetch = dateparser.parse(since_time)
-
     latest_created_at = last_fetch
 
     xsoar_incidents = []
-    hoxhunt_incidents = client.do_get_incidents_request(page_size=page_size)
+    hoxhunt_incidents = client.do_get_incidents_request(page_size=args.get('page_size'))
 
     for hoxhunt_incident in hoxhunt_incidents:
         created_at = dateparser.parse(hoxhunt_incident['createdAt'])
@@ -145,20 +144,14 @@ def fetch_incidents_command(
 def main() -> None:
     command = demisto.command()
 
-    command_args = demisto.args()
-    command_params = demisto.params()
-
-    api_url = command_params.get('api_url')
-    api_key = command_params.get('api_key')
-
-    demisto.debug(f'Command being called is {command}')
-
     client = HoxhuntAPIClient(
-        api_url=api_url,
-        api_key=api_key
+        api_url=demisto.params().get('api_url'),
+        api_key=demisto.params().get('api_key')
     )
 
     try:
+
+        demisto.debug(f'Command being called is {command}')
 
         if command == 'test-module':
             msg = test_module_command(client)
@@ -166,12 +159,14 @@ def main() -> None:
 
         elif command == 'fetch-incidents':
             last_run = demisto.getLastRun()
+            since_time = demisto.params().get('since_time')
+
+            last_fetch = get_last_fetch_timestamp(last_run, since_time)
 
             next_run, incidents = fetch_incidents_command(
                 client=client,
-                last_run=last_run,
-                command_args=command_args,
-                command_params=command_params
+                last_fetch=last_fetch,
+                args=demisto.args()
             )
 
             demisto.setLastRun(next_run)
