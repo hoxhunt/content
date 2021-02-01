@@ -114,13 +114,13 @@ def test_module_command(client: HoxhuntAPIClient):
 
 def fetch_incidents_command(
         client: HoxhuntAPIClient,
-        last_fetch: Optional[datetime.datetime],
-        args: AnyDict
+        page_size: int,
+        last_fetch: Optional[datetime.datetime]
 ) -> Tuple[StrDict, List[AnyDict]]:
-    latest_created_at = last_fetch
-
     xsoar_incidents = []
-    hoxhunt_incidents = client.do_get_incidents_request(page_size=args.get('page_size'))
+    hoxhunt_incidents = client.do_get_incidents_request(page_size=page_size)
+
+    latest_created_at = last_fetch
 
     for hoxhunt_incident in hoxhunt_incidents:
         created_at = dateparser.parse(hoxhunt_incident['createdAt'])
@@ -160,13 +160,14 @@ def main() -> None:
         elif command == 'fetch-incidents':
             last_run = demisto.getLastRun()
             since_time = demisto.params().get('since_time')
+            page_size = int(demisto.params().get('page_size'))
 
             last_fetch = get_last_fetch_timestamp(last_run, since_time)
 
             next_run, incidents = fetch_incidents_command(
                 client=client,
-                last_fetch=last_fetch,
-                args=demisto.args()
+                page_size=page_size,
+                last_fetch=last_fetch
             )
 
             demisto.setLastRun(next_run)
