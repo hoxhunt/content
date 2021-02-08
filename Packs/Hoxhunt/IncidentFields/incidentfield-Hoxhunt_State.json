@@ -1,0 +1,32 @@
+{
+    "id": "incident_hoxhuntstate",
+    "version": -1,
+    "modified": "2021-02-08T15:21:13.200093641+02:00",
+    "name": "Hoxhunt State",
+    "ownerOnly": false,
+    "cliName": "hoxhuntstate",
+    "type": "shortText",
+    "closeForm": false,
+    "editForm": true,
+    "required": false,
+    "neverSetAsRequired": false,
+    "isReadOnly": false,
+    "useAsKpi": false,
+    "locked": false,
+    "system": false,
+    "content": true,
+    "group": 0,
+    "hidden": false,
+    "associatedTypes": [
+        "Campaign",
+        "Compromised email",
+        "User acted on threat"
+    ],
+    "associatedToAll": false,
+    "unmapped": false,
+    "unsearchable": false,
+    "caseInsensitive": true,
+    "sla": 0,
+    "threshold": 72,
+    "fromVersion": "5.0.0"
+}
