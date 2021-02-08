@@ -1,0 +1,22 @@
+{
+    "defaultIncidentType": "Unclassified",
+    "description": "",
+    "feed": false,
+    "id": "6cc839c9-094b-44e1-8ad7-161aa0289b72",
+    "keyTypeMap": {
+        "BUSINESS_EMAIL_COMPROMISE": "Compromised Email",
+        "CAMPAIGN": "Campaign",
+        "USER_ACTED_ON_THREAT": "User Acted on Threat"
+    },
+    "name": "Hoxhunt - Classification",
+    "propagationLabels": [
+        "all"
+    ],
+    "transformer": {
+        "complex": null,
+        "simple": "policyName"
+    },
+    "type": "classification",
+    "version": -1,
+    "fromVersion": "6.0.0"
+}
