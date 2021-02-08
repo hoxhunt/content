@@ -18,7 +18,27 @@ StrDict = Dict[str, str]
 AnyDict = Dict[str, Any]
 
 
-class HoxhuntException(Exception):
+class IncidentStates:
+    OPEN = 'OPEN'
+    RESOLVED = 'RESOLVED'
+
+
+class IncidentTypes:
+    COMPROMISED_EMAIL = 'BUSINESS_EMAIL_COMPROMISE'
+    CAMPAIGN = 'CAMPAIGN'
+    USER_ACTED = 'USER_ACTED_ON_THREAT'
+
+
+class IncidentSeverities:
+    INCONCLUSIVE = 'INCONCLUSIVE'
+    FALSE_POSITIVE = 'FALSE_POSITIVE'
+    SPAM = 'SPAM'
+    PHISHING = 'PHISH'
+    SPEAR_PHISHING = 'SPEAR'
+    COMPROMISED_EMAIL = 'COMPROMISED_EMAIL'
+
+
+class HoxhuntAPIException(Exception):
     def __init__(self, err: requests.exceptions.HTTPError):
         super().__init__(err)
         self.status_code = err.response.status_code
@@ -32,9 +52,7 @@ class HoxhuntAPIClient:
     AUTH_HEADER_NAME = 'Authorization'
     AUTH_TOKEN_TYPE = 'Authtoken'
 
-    INCIDENT_SEARCH_TERM = 'is:open is:escalated'
-    INCIDENT_TIMESTAMP_FILTER = 'updatedAt_gt'
-    DEFAULT_SORT = 'updatedAt_ASC'
+    DEFAULT_SORT_FIELD = 'updatedAt'
 
     def __init__(self, api_url: str, api_key: str):
         super().__init__()
@@ -54,8 +72,8 @@ class HoxhuntAPIClient:
             """
         )
 
-    def do_get_incidents_request(self, page_size: int, since: Optional[str]) -> List[AnyDict]:
-        response = self._do_request(
+    def do_fetch_incidents_request(self, page_size: int, since: Optional[str]) -> List[AnyDict]:
+        return self._do_request(
             query="""
                 query getIncidentsBasicInfo(
                         $search: String,
@@ -86,15 +104,12 @@ class HoxhuntAPIClient:
                     }
                 }
             """,
-            variables={
-                'search': self.INCIDENT_SEARCH_TERM,
-                'filter': {self.INCIDENT_TIMESTAMP_FILTER: since} if since else {},
-                'first': page_size,
-                'sort': self.DEFAULT_SORT
-            }
-        )
-
-        return response['incidents']
+            variables=self._get_incidents_query_variables(
+                page_size=page_size,
+                since=since
+            )
+        ) \
+            .get('incidents')
 
     def _do_request(self, query: str, variables: AnyDict = None) -> AnyDict:
         try:
@@ -110,9 +125,32 @@ class HoxhuntAPIClient:
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise HoxhuntException(e)
+            raise HoxhuntAPIException(e)
 
-        return response.json()['data']
+        return response.json().get('data')
+
+    def _get_incidents_query_variables(self, page_size: int, since: Optional[str]) -> StrDict:
+        timestamp_filter = {f'{self.DEFAULT_SORT_FIELD}_gt': since} if since else {}
+
+        return {
+            'search': 'is:escalated',
+            'filter': {
+                'policyName_in': [
+                    IncidentTypes.COMPROMISED_EMAIL,
+                    IncidentTypes.CAMPAIGN,
+                    IncidentTypes.USER_ACTED
+                ],
+                'severity_in': [
+                    IncidentSeverities.PHISHING,
+                    IncidentSeverities.SPEAR_PHISHING,
+                    IncidentSeverities.COMPROMISED_EMAIL
+                ],
+                'state_eq': IncidentStates.OPEN,
+                **timestamp_filter
+            },
+            'first': page_size,
+            'sort': f'{self.DEFAULT_SORT_FIELD}_ASC'
+        }
 
 
 def test_module_command(client: HoxhuntAPIClient):
@@ -132,7 +170,7 @@ def fetch_incidents_command(
     xsoar_incidents = []
     latest_updated_at = last_fetch
 
-    hoxhunt_incidents = client.do_get_incidents_request(
+    hoxhunt_incidents = client.do_fetch_incidents_request(
         page_size=page_size,
         since=last_fetch_str
     )
@@ -156,6 +194,11 @@ def fetch_incidents_command(
     return next_run, xsoar_incidents
 
 
+class Commands:
+    TEST = 'test-module'
+    FETCH_INCIDENTS = 'fetch-incidents'
+
+
 def main() -> None:
     command = demisto.command()
 
@@ -168,11 +211,11 @@ def main() -> None:
 
         demisto.debug(f'Command being called is {command}')
 
-        if command == 'test-module':
+        if command == Commands.TEST:
             msg = test_module_command(client)
             return_results(msg)
 
-        elif command == 'fetch-incidents':
+        elif command == Commands.FETCH_INCIDENTS:
             last_run = demisto.getLastRun()
             since_time = demisto.params().get('since_time')
             page_size = int(demisto.params().get('page_size'))
