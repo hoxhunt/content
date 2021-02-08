@@ -32,7 +32,9 @@ class HoxhuntAPIClient:
     AUTH_HEADER_NAME = 'Authorization'
     AUTH_TOKEN_TYPE = 'Authtoken'
 
-    DEFAULT_SORT = 'createdAt_ASC'
+    INCIDENT_SEARCH_TERM = 'is:open is:escalated'
+    INCIDENT_TIMESTAMP_FILTER = 'updatedAt_gt'
+    DEFAULT_SORT = 'updatedAt_ASC'
 
     def __init__(self, api_url: str, api_key: str):
         super().__init__()
@@ -55,8 +57,18 @@ class HoxhuntAPIClient:
     def do_get_incidents_request(self, page_size: int, since: Optional[str]) -> List[AnyDict]:
         response = self._do_request(
             query="""
-                query getIncidentsBasicInfo($filter: Incident_filter, $first: Int, $sort: [Incident_sort]) {
-                    incidents(filter: $filter, first: $first, sort: $sort) {
+                query getIncidentsBasicInfo(
+                        $search: String,
+                        $filter: Incident_filter,
+                        $first: Int,
+                        $sort: [Incident_sort]
+                ) {
+                    incidents(
+                            search: $search,
+                            filter: $filter, 
+                            first: $first, 
+                            sort: $sort
+                    ) {
                         _id
                         createdAt
                         updatedAt
@@ -75,7 +87,8 @@ class HoxhuntAPIClient:
                 }
             """,
             variables={
-                'filter': {'createdAt_gt': since} if since else {},
+                'search': self.INCIDENT_SEARCH_TERM,
+                'filter': {self.INCIDENT_TIMESTAMP_FILTER: since} if since else {},
                 'first': page_size,
                 'sort': self.DEFAULT_SORT
             }
@@ -117,7 +130,7 @@ def fetch_incidents_command(
     last_fetch = dateparser.parse(last_fetch_str) if last_fetch_str else None
 
     xsoar_incidents = []
-    latest_created_at = last_fetch
+    latest_updated_at = last_fetch
 
     hoxhunt_incidents = client.do_get_incidents_request(
         page_size=page_size,
@@ -125,20 +138,20 @@ def fetch_incidents_command(
     )
 
     for hoxhunt_incident in hoxhunt_incidents:
-        created_at = dateparser.parse(hoxhunt_incident['createdAt'])
+        updated_at = dateparser.parse(hoxhunt_incident['updatedAt'])
 
         xsoar_incident = {
             'name': hoxhunt_incident['humanReadableId'],
-            'occurred': created_at.strftime(DATE_FORMAT),
+            'occurred': hoxhunt_incident['createdAt'],
             'rawJSON': json.dumps(hoxhunt_incident)
         }
 
         xsoar_incidents.append(xsoar_incident)
 
-        if not latest_created_at or (created_at > latest_created_at):
-            latest_created_at = created_at
+        if not latest_updated_at or (updated_at > latest_updated_at):
+            latest_updated_at = updated_at
 
-    next_run = {'last_fetch': latest_created_at.strftime(DATE_FORMAT)}
+    next_run = {'last_fetch': latest_updated_at.strftime(DATE_FORMAT)}
 
     return next_run, xsoar_incidents
 
