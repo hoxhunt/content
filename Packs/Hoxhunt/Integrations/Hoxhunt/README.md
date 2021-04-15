@@ -10,16 +10,14 @@ This integration is tested with **VERSION** of Hoxhunt's API.
 2. Search for Hoxhunt.
 3. Click **Add instance** to create and configure a new integration instance.
 
-| **Parameter** | **Description** | **Required** |
-| --- | --- | --- |
-| api_url | Hoxhunt's API URL \(e.g., https://domain-to-api.com/) | True |
-| api_key | Your personal API token, created in Hoxhunt settings | True |
-| max_fetch | Maximum amount of objects that the integration commands can fetch at once | True |
+| **Parameter** | **Description** | **Required** | **Notes** |
+| --- | --- | --- | --- |
+| `api_key` | Your personal API token, created in Hoxhunt settings. | Yes | API keys are environment-specific. If you override `api_url`, you have to specify the correct key. |
+| `api_url` | Hoxhunt API URL. | No | Defaults to https://app.hoxhunt.com/graphql-external. Provide only if you want to test the integration against some other environment. |
+| `max_fetch` | Maximum amount of objects that the integration commands can fetch at once. | No | Defaults to `200`. Using a larger value can cause problems with your integration instance, according to XSOAR's documentation. |
 
 4. Click **Test** to validate the API url and token. A successful test command means that the integration can fetch the
 email address set in your Hoxhunt profile.
-   
-**Note:** Cortex XSOAR recommends that no more than `200` objects should be fetched at once. Using a larger `max_fetch` value can cause problems with your integration instance.
    
 ## Commands
 
@@ -46,17 +44,24 @@ You can also provide additional filter arguments:
 
 | **Argument Name** | **Description** | **Required** |
 | --- | --- | --- |
-| is_escalated | Whether the command should fetch Incidents escalated by Hoxhunt or not. `True` by default. | No |
+| is_escalated | Whether the command should fetch Incidents escalated by Hoxhunt or not. `false` by default. | No |
 | first_reported_at | Filter Incidents that were first reported after this time. | No | 
-| last_reported_at | Filter Incidents that were first reported after this time. | No |
+| last_reported_at | Filter Incidents that were last reported after this time. | No |
+| sort_by | Field to sort Incidents by. Possible values: `CreatedAt`, `UpdatedAt`. `CreatedAt` by default (oldest first by creation). Prefix with `-` for newest-first order. | No |
+| after | `HumanReadableId` of the last Incident of your previous run of the command, used to fetch the next page of results in case your previous run returned a list of Incidents as long as `page_size`. | No |
+| page_size | Amount of Incidents to fetch at once. Defaults to the global `max_fetch` value. | No | 
 
 You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 month`.
+
+#### Command Example
+
+```!hoxhunt-get-incidents is_escalated="true" last_reported_at="2 months" page_size="50" sort_by="-CreatedAt"```
 
 #### Context Output
 
 | **Path** | **Type** | **Description** |
 | --- | --- | --- |
-| Hoxhunt.Incident.ID | string | Machine-generated ID of the Incident. |
+| Hoxhunt.Incident.Id | string | Machine-generated ID of the Incident. |
 | Hoxhunt.Incident.HumanReadableId | string | Human-readable ID of the Incident. |
 | Hoxhunt.Incident.CreatedAt | date | ISO 8601 timestamp string of when the Incident was created. | 
 | Hoxhunt.Incident.UpdatedAt | date | ISO 8601 timestamp string of when the Incident was last updated. | 
@@ -67,11 +72,7 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
 | Hoxhunt.Incident.State | string | Incident state (always `OPEN`). | 
 | Hoxhunt.Incident.ThreatCount | number | The amount of Threats associated with this Incident. | 
 | Hoxhunt.Incident.EscalatedAt | date | ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is `null`. | 
-| Hoxhunt.Incident.EscalationThreshold | number | The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, this field is `null`.| 
-
-#### Command Example
-
-```!hoxhunt-get-incidents is_escalated="true" first_reported_at="2 months" last_reported_at="2 months"```
+| Hoxhunt.Incident.EscalationThreshold | number | The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its `Type` is `USER_ACTED_ON_THREAT`, this field is `null`.| 
 
 #### Context Example
 
@@ -80,7 +81,7 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
     "Hoxhunt": {
         "Incident": [
             {
-                "ID": "zxc12rregsdf",
+                "Id": "zxc12rregsdf",
                 "HumanReadableID": "hox-hungry-mongoose-12",
                 "CreatedAt": "2020-06-04T13:42:26.173Z",
                 "UpdatedAt": "2020-06-04T13:42:26.173Z",
@@ -101,7 +102,7 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
 #### Human Readable Output
 
 >### Incidents:
->|ID|Human Readable Id|Created At|Updated At|First Reported At|Last Reported At|Type|Severity|State|Threat Count|Escalated At|Escalation Threshold|
+>|Id|Human Readable Id|Created At|Updated At|First Reported At|Last Reported At|Type|Severity|State|Threat Count|Escalated At|Escalation Threshold|
 >|---|---|---|---|---|---|---|---|---|---|---|---|
 >| zxc12rregsdf | hox-hungry-mongoose-12 | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | CAMPAIGN | PHISH | OPEN | 10 | 2020-06-04T13:42:26.173Z | 5 |
 
@@ -120,11 +121,15 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | --- | --- | --- |
 | human_readable_id | The human-readable ID of the Incident you wish to query Threats for. | Yes |
 
+#### Command Example
+
+```!hoxhunt-get-incident-threats human_readable_id="hox-dangerous-incident-1"```
+
 #### Context Output
 
 | **Path** | **Type** | **Description** |
 | --- | --- | --- |
-| Hoxhunt.Threat.ID | string | Machine-generated ID of the Threat. | 
+| Hoxhunt.Threat.Id | string | Machine-generated ID of the Threat. | 
 | Hoxhunt.Threat.CreatedAt | date | ISO 8601 timestamp string of when the Threat was created. | 
 | Hoxhunt.Threat.UpdatedAt | date | ISO 8601 timestamp string of when the Threat was last updated. |
 | Hoxhunt.Threat.EmailFrom.Name | string | An email sender name field value. |
@@ -152,7 +157,7 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
     "Hoxhunt": {
         "Threat": [
             {
-                "ID": "rth675iofjy",
+                "Id": "rth675iofjy",
                 "CreatedAt": "2020-06-04T13:42:26.173Z",
                 "UpdatedAt": "2020-06-04T13:42:26.173Z",
                 "EmailFrom": [
@@ -199,6 +204,6 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 #### Human Readable Output
 
 >### Incidents:
->|ID|Created At|Updated At|Email From|Email Attachments|Enrichment Hops|Enrichment Links|User Modifiers|
+>|Id|Created At|Updated At|Email From|Email Attachments|Enrichment Hops|Enrichment Links|User Modifiers|
 >|---|---|---|---|---|---|---|---|
 >| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | [{"Name": "Bad Guy", "Address": "suspicious.email@example.com"}] | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"UserActedOnThreat": true, "UserRepliedToEmail": true, "UserDownloadedFile": true, "UserOpenedAttachment": true, "UserVisitedLink": true, "UserEnteredCredentials": true, "UserMarkedAsSpam": false} |
