@@ -1,13 +1,13 @@
-#import demistomock as demisto
-from Packs.HelloWorld.Integrations.HelloWorld.CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
-from Packs.HelloWorld.Integrations.HelloWorld.CommonServerUserPython import *  # noqa
+import demistomock as demisto
+from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
+from CommonServerUserPython import *  # noqa
 
 import datetime
 import json
 import requests
 import traceback
 
-from typing import Callable, Dict, Any, List, Optional, Tuple, Union
+from typing import Callable, Dict, Any, List, Optional, Union
 
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
