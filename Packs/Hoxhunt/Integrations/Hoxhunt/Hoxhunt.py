@@ -27,6 +27,21 @@ class ArgumentValidator:
     def __init__(self, args: AnyDict):
         self.args = args
 
+    def validate_string(self, arg_name: str, required: bool = False) -> Optional[str]:
+        raw_value = self.args.get(arg_name)
+
+        try:
+            if raw_value is not None:
+                return str(raw_value)
+            if required:
+                raise ValueError
+            return raw_value
+        except ValueError:
+            if arg_name:
+                raise ValueError('Invalid string: "{}"="{}"'.format(arg_name, raw_value))
+            else:
+                raise ValueError('"{}" is not a valid string'.format(raw_value))
+
     def validate_boolean(self, arg_name: str, required: bool = False) -> Optional[bool]:
         """
         More verbose error message in case the user specifies an invalid boolean value.
@@ -95,17 +110,6 @@ class IncidentSeverities:
     COMPROMISED_EMAIL = 'COMPROMISED_EMAIL'
 
 
-class Commands:
-    TEST_MODULE = 'test-module'
-    HOXHUNT_FETCH_INCIDENTS = 'hoxhunt-fetch-incidents'
-    HOXHUNT_FETCH_INCIDENT_THREATS = 'hoxhunt-fetch-incident-threats'
-
-
-class CommandOutputs:
-    INCIDENT = 'Hoxhunt.Incident'
-    THREAT = 'Hoxhunt.Threat'
-
-
 class HoxhuntAPIException(Exception):
     def __init__(self, err: requests.exceptions.HTTPError):
         super().__init__(err)
@@ -166,9 +170,6 @@ class HoxhuntAPIClient:
             skip: int = None
     ) -> ListOfDicts:
         filters = filters or {}
-        sort = sort or self.DEFAULT_SORT_BY
-        first = first or self.MAX_PAGE_SIZE
-        skip = skip or 0
 
         return self._do_request(
             query="""
@@ -177,7 +178,7 @@ class HoxhuntAPIClient:
                         $filter: Incident_filter,
                         $sort: [Incident_sort],
                         $first: Int,
-                        skip: Int
+                        $skip: Int
                 ) {
                     incidents(
                             search: $search,
@@ -220,43 +221,38 @@ class HoxhuntAPIClient:
                     'state_eq': IncidentStates.OPEN,
                     **filters
                 },
-                'sort': sort,
-                'first': first,
-                'skip': skip
+                **self._get_common_parameters(sort, first, skip)
             }
         )
 
     def do_fetch_incident_threats_request(
             self,
             incident_id: str,
-            page_size: int = None,
-            since: str = None,
-            until: str = None
+            filters: AnyDict = None,
+            sort: int = None,
+            first: int = None,
+            skip: int = None
     ) -> ListOfDicts:
-        timestamp_filter = {}
-
-        if since:
-            timestamp_filter['createdAt_gte'] = since
-        if until:
-            timestamp_filter['createdAt_lte'] = until
+        filters = filters or {}
 
         return self._do_request(
             query="""
                 query getIncidentThreatsWithEnrichmentsAndModifiers(
-                        $filter: Incident_filter,
+                        $incident_filter: Incident_filter,
+                        $threat_filter: Threat_filter,
+                        $sort: [Threat_sort],
                         $first: Int,
-                        $skip: Int,
-                        $sort: [Incident_sort]
+                        $skip: Int
                 ) {
-                    incidents(
-                            filter: $filter,
-                            first: $first,
-                            skip: $skip,
-                            sort: $sort
-                    ) {
+                    incidents(filter: $incident_filter) {
                         _id
                         humanReadableId
-                        threats {
+                        threats(
+                                filter: $threat_filter,
+                                sort: $sort,
+                                first: $first,
+                                skip: $skip
+                        ) {
                             _id
                             createdAt
                             updatedAt
@@ -297,14 +293,18 @@ class HoxhuntAPIClient:
             """,
             getter_func=lambda response: response.get('incidents', []).pop().get('threats', []),
             variables={
-                'filter': {
-                    'humanReadableId_eq': incident_id
-                },
-                # 'threatFilter': timestamp_filter,
-                'first': page_size or self.MAX_PAGE_SIZE,
-                'sort': 'updatedAt_ASC'
+                'incident_filter': {'humanReadableId_eq': incident_id},
+                'threat_filter': filters,
+                **self._get_common_parameters(sort, first, skip)
             }
         )
+
+    def _get_common_parameters(self, sort: int = None, first: int = None, skip: int = None) -> AnyDict:
+        return {
+            'sort': sort or self.DEFAULT_SORT_BY,
+            'first': first or self.MAX_PAGE_SIZE,
+            'skip': skip or 0
+        }
 
     def _do_request(
             self,
@@ -385,7 +385,7 @@ def get_incidents_command(
     )
 
     return CommandResults(
-        outputs_prefix=CommandOutputs.INCIDENT,
+        outputs_prefix='Hoxhunt.Incident',
         outputs_key_field='humanReadableId',
         outputs=hoxhunt_incidents
     )
@@ -396,21 +396,24 @@ def get_incident_threats_command(
         args: AnyDict,
         params: AnyDict
 ) -> CommandResults:
-    incident_id = args.get('incident_id')
+    args_validator = ArgumentValidator(args)
+    params_validator = ArgumentValidator(params)
 
-    page_size = params.get('page_size')
-    since = args.get('since_time')
-    until = args.get('until_time')
+    incident_id = args_validator.validate_string('incident_id', required=True)
+
+    sort_by = args_validator.validate_sort('sort_by') or client.DEFAULT_SORT_BY
+    page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
+    page = args_validator.validate_int('page') or 1
 
     hoxhunt_threats = client.do_fetch_incident_threats_request(
         incident_id=incident_id,
-        page_size=page_size,
-        since=since,
-        until=until
+        sort=sort_by,
+        first=page_size,
+        skip=(page - 1) * page_size
     )
 
     return CommandResults(
-        outputs_prefix=CommandOutputs.THREAT,
+        outputs_prefix='Hoxhunt.Threat',
         outputs_key_field='_id',
         outputs=hoxhunt_threats
     )
@@ -430,11 +433,11 @@ def main() -> None:
 
         demisto.debug(f'Command being called is {command}')
 
-        if command == Commands.TEST_MODULE:
+        if command == 'test-module':
             msg = test_module_command(client)
             return_results(msg)
 
-        elif command == Commands.HOXHUNT_FETCH_INCIDENTS:
+        elif command == 'hoxhunt-get-incidents':
             return_results(
                 results=get_incidents_command(
                     client=client,
@@ -443,7 +446,7 @@ def main() -> None:
                 )
             )
 
-        elif command == Commands.HOXHUNT_FETCH_INCIDENT_THREATS:
+        elif command == 'hoxhunt-get-incident-threats':
             return_results(
                 results=get_incident_threats_command(
                     client,

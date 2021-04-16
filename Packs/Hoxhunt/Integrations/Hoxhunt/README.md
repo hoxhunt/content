@@ -82,7 +82,7 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
         "Incident": [
             {
                 "Id": "zxc12rregsdf",
-                "HumanReadableID": "hox-hungry-mongoose-12",
+                "HumanReadableId": "hox-dangerous-incident-1",
                 "CreatedAt": "2020-06-04T13:42:26.173Z",
                 "UpdatedAt": "2020-06-04T13:42:26.173Z",
                 "FirstReportedAt": "2020-06-04T13:42:26.173Z",
@@ -120,6 +120,9 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | **Argument Name** | **Description** | **Required** |
 | --- | --- | --- |
 | human_readable_id | The human-readable ID of the Incident you wish to query Threats for. | Yes |
+| sort_by | Field to sort Threats by. Possible values: `CreatedAt`, `UpdatedAt`. `CreatedAt` by default (oldest first by creation). Prefix with `-` for newest-first order. | No |
+| page_size | Amount of Threats to fetch at once. Defaults to the global `max_fetch` value. | No | 
+| page | Set of Threats to fetch. Defaults to `1`. | No |
 
 #### Command Example
 
