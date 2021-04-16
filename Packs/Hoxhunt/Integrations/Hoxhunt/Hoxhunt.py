@@ -162,10 +162,13 @@ class HoxhuntAPIClient:
             search: str = None,
             filters: AnyDict = None,
             sort: str = None,
-            after: str = None,
-            first: int = None
+            first: int = None,
+            skip: int = None
     ) -> ListOfDicts:
         filters = filters or {}
+        sort = sort or self.DEFAULT_SORT_BY
+        first = first or self.MAX_PAGE_SIZE
+        skip = skip or 0
 
         return self._do_request(
             query="""
@@ -219,7 +222,7 @@ class HoxhuntAPIClient:
                 },
                 'sort': sort,
                 'first': first,
-                'after': after
+                'skip': skip
             }
         )
 
@@ -371,14 +374,14 @@ def get_incidents_command(
 
     sort_by = args_validator.validate_sort('sort_by') or client.DEFAULT_SORT_BY
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
-    after = args.get('after')
+    page = args_validator.validate_int('page') or 1
 
     hoxhunt_incidents = client.do_fetch_incidents_request(
         search=search,
         filters=filters,
         sort=sort_by,
         first=page_size,
-        after=after
+        skip=(page - 1) * page_size
     )
 
     return CommandResults(

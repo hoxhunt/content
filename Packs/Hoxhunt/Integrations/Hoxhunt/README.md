@@ -48,14 +48,14 @@ You can also provide additional filter arguments:
 | first_reported_at | Filter Incidents that were first reported after this time. | No | 
 | last_reported_at | Filter Incidents that were last reported after this time. | No |
 | sort_by | Field to sort Incidents by. Possible values: `CreatedAt`, `UpdatedAt`. `CreatedAt` by default (oldest first by creation). Prefix with `-` for newest-first order. | No |
-| after | `HumanReadableId` of the last Incident of your previous run of the command, used to fetch the next page of results in case your previous run returned a list of Incidents as long as `page_size`. | No |
 | page_size | Amount of Incidents to fetch at once. Defaults to the global `max_fetch` value. | No | 
+| page | Set of Incidents to fetch. Defaults to `1`. | No |
 
 You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 month`.
 
 #### Command Example
 
-```!hoxhunt-get-incidents is_escalated="true" last_reported_at="2 months" page_size="50" sort_by="-CreatedAt"```
+```!hoxhunt-get-incidents is_escalated="true" last_reported_at="2 months" page_size="50" page="2" sort_by="-CreatedAt"```
 
 #### Context Output
 
