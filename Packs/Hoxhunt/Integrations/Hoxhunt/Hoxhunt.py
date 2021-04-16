@@ -2,12 +2,11 @@ import demistomock as demisto
 from CommonServerPython import *  # noqa # pylint: disable=unused-wildcard-import
 from CommonServerUserPython import *  # noqa
 
-import datetime
 import json
 import requests
 import traceback
 
-from typing import Callable, Dict, Any, List, Optional, Union
+from typing import Callable, Dict, Any, List, Optional
 
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
@@ -15,7 +14,6 @@ requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 AnyDict = Dict[str, Any]
 
 ListOfDicts = List[AnyDict]
-DictOrListOfDicts = Union[AnyDict, ListOfDicts]
 
 
 class ArgumentValidator:
@@ -27,15 +25,13 @@ class ArgumentValidator:
     def __init__(self, args: AnyDict):
         self.args = args
 
-    def validate_string(self, arg_name: str, required: bool = False) -> Optional[str]:
+    def validate_id(self, arg_name: str) -> str:
         raw_value = self.args.get(arg_name)
 
         try:
-            if raw_value is not None:
-                return str(raw_value)
-            if required:
+            if raw_value is None:
                 raise ValueError
-            return raw_value
+            return str(raw_value)
         except ValueError:
             if arg_name:
                 raise ValueError('Invalid string: "{}"="{}"'.format(arg_name, raw_value))
@@ -62,7 +58,7 @@ class ArgumentValidator:
             else:
                 raise ValueError('"{}" is not a valid boolean'.format(raw_value))
 
-    def validate_datetime(self, arg_name: str, required: bool = False) -> Optional[datetime.datetime]:
+    def validate_datetime(self, arg_name: str, required: bool = False) -> Optional[datetime]:
         raw_value = self.args.get(arg_name)
         return arg_to_datetime(raw_value, arg_name=arg_name, required=required)
 
@@ -70,7 +66,7 @@ class ArgumentValidator:
         raw_value = self.args.get(arg_name)
         return arg_to_number(raw_value, arg_name=arg_name, required=required)
 
-    def validate_sort(self, arg_name: str = None, required: bool = False):
+    def validate_sort(self, arg_name: str, required: bool = False) -> Optional[str]:
         raw_value = self.args.get(arg_name)
 
         try:
@@ -130,7 +126,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     Let's do that ourselves.
     """
     def default(self, o: Any) -> Any:
-        if isinstance(o, datetime.datetime):
+        if isinstance(o, datetime):
             return o.isoformat()
         return super().default(o)
 
@@ -182,9 +178,9 @@ class HoxhuntAPIClient:
                 ) {
                     incidents(
                             search: $search,
-                            filter: $filter, 
+                            filter: $filter,
                             sort: $sort,
-                            first: $first, 
+                            first: $first,
                             skip: $skip
                     ) {
                         _id
@@ -229,7 +225,7 @@ class HoxhuntAPIClient:
             self,
             incident_id: str,
             filters: AnyDict = None,
-            sort: int = None,
+            sort: str = None,
             first: int = None,
             skip: int = None
     ) -> ListOfDicts:
@@ -266,7 +262,7 @@ class HoxhuntAPIClient:
                                     type
                                     hash
                                     size
-                                }  
+                                }
                             }
                             enrichments {
                                 hops {
@@ -299,7 +295,7 @@ class HoxhuntAPIClient:
             }
         )
 
-    def _get_common_parameters(self, sort: int = None, first: int = None, skip: int = None) -> AnyDict:
+    def _get_common_parameters(self, sort: str = None, first: int = None, skip: int = None) -> AnyDict:
         return {
             'sort': sort or self.DEFAULT_SORT_BY,
             'first': first or self.MAX_PAGE_SIZE,
@@ -311,7 +307,7 @@ class HoxhuntAPIClient:
             query: str,
             getter_func: Callable,
             variables: AnyDict = None
-    ) -> DictOrListOfDicts:
+    ) -> ListOfDicts:
         """
         Note:
             This method feeds the request body to `requests.post` using the `data` keyword argument instead of `json`.
@@ -399,7 +395,7 @@ def get_incident_threats_command(
     args_validator = ArgumentValidator(args)
     params_validator = ArgumentValidator(params)
 
-    incident_id = args_validator.validate_string('incident_id', required=True)
+    incident_id = args_validator.validate_id('incident_id')
 
     sort_by = args_validator.validate_sort('sort_by') or client.DEFAULT_SORT_BY
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
