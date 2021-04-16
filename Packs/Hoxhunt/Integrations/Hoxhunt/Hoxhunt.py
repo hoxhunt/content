@@ -12,7 +12,6 @@ from typing import Callable, Dict, Any, List, Optional, Tuple, Union
 # Disable insecure warnings
 requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 
-StrDict = Dict[str, str]
 AnyDict = Dict[str, Any]
 
 ListOfDicts = List[AnyDict]
@@ -25,11 +24,15 @@ class ArgumentValidator:
         'UpdatedAt': 'updatedAt'
     }
 
-    def __init__(self, args: StrDict):
+    def __init__(self, args: AnyDict):
         self.args = args
 
     def validate_boolean(self, arg_name: str, required: bool = False) -> Optional[bool]:
-        """ More verbose error message in case the user specifies an invalid boolean value. """
+        """
+        More verbose error message in case the user specifies an invalid boolean value.
+        Clearly the `argToBoolean` function has been written by someone else than `arg_to_datetime`
+        or `arg_to_number`.
+        """
         raw_value = self.args.get(arg_name)
 
         try:
@@ -157,18 +160,12 @@ class HoxhuntAPIClient:
     def do_fetch_incidents_request(
             self,
             search: str = None,
-            first_reported_at: str = None,
-            last_reported_at: str = None,
+            filters: AnyDict = None,
             sort: str = None,
             after: str = None,
             first: int = None
     ) -> ListOfDicts:
-        extra_filters = {}
-
-        if first_reported_at:
-            extra_filters['first_reported_at'] = first_reported_at
-        if last_reported_at:
-            extra_filters['last_reported_at'] = last_reported_at
+        filters = filters or {}
 
         return self._do_request(
             query="""
@@ -218,7 +215,7 @@ class HoxhuntAPIClient:
                         IncidentSeverities.COMPROMISED_EMAIL
                     ],
                     'state_eq': IncidentStates.OPEN,
-                    **extra_filters
+                    **filters
                 },
                 'sort': sort,
                 'first': first,
@@ -353,8 +350,8 @@ def test_module_command(client: HoxhuntAPIClient):
 
 def get_incidents_command(
         client: HoxhuntAPIClient,
-        args: StrDict,
-        params: StrDict
+        args: AnyDict,
+        params: AnyDict
 ) -> CommandResults:
     args_validator = ArgumentValidator(args)
     params_validator = ArgumentValidator(params)
@@ -362,8 +359,15 @@ def get_incidents_command(
     is_escalated = args_validator.validate_boolean('is_escalated')
     search = f'{"is" if is_escalated else "not"}:escalated' if is_escalated is not None else None
 
+    filters = {}
+
     first_reported_at = args_validator.validate_datetime('first_reported_at')
     last_reported_at = args_validator.validate_datetime('last_reported_at')
+
+    if first_reported_at:
+        filters['first_reported_at_gte'] = first_reported_at
+    if last_reported_at:
+        filters['last_reported_at_gte'] = last_reported_at
 
     sort_by = args_validator.validate_sort('sort_by') or client.DEFAULT_SORT_BY
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
@@ -371,8 +375,7 @@ def get_incidents_command(
 
     hoxhunt_incidents = client.do_fetch_incidents_request(
         search=search,
-        first_reported_at=first_reported_at,
-        last_reported_at=last_reported_at,
+        filters=filters,
         sort=sort_by,
         first=page_size,
         after=after
@@ -387,8 +390,8 @@ def get_incidents_command(
 
 def get_incident_threats_command(
         client: HoxhuntAPIClient,
-        args: StrDict,
-        params: StrDict
+        args: AnyDict,
+        params: AnyDict
 ) -> CommandResults:
     incident_id = args.get('incident_id')
 
