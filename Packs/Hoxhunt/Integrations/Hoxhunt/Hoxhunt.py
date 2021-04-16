@@ -175,16 +175,16 @@ class HoxhuntAPIClient:
                 query getIncidents(
                         $search: String,
                         $filter: Incident_filter,
-                        $first: Int,
                         $sort: [Incident_sort],
-                        $after: ID
+                        $first: Int,
+                        skip: Int
                 ) {
                     incidents(
                             search: $search,
                             filter: $filter, 
-                            first: $first, 
                             sort: $sort,
-                            after: $after
+                            first: $first, 
+                            skip: $skip
                     ) {
                         _id
                         createdAt
