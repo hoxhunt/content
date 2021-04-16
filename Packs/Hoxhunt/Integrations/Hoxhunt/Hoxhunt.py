@@ -368,9 +368,9 @@ def get_incidents_command(
     last_reported_at = args_validator.validate_datetime('last_reported_at')
 
     if first_reported_at:
-        filters['first_reported_at_gte'] = first_reported_at
+        filters['firstReportedAt_gte'] = first_reported_at
     if last_reported_at:
-        filters['last_reported_at_gte'] = last_reported_at
+        filters['lastReportedAt_gte'] = last_reported_at
 
     sort_by = args_validator.validate_sort('sort_by') or client.DEFAULT_SORT_BY
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
