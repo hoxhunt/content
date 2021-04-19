@@ -29,14 +29,11 @@ class ArgumentValidator:
         raw_value = self.args.get(arg_name)
 
         try:
-            if raw_value is None:
+            if raw_value is None or not isinstance(raw_value, str):
                 raise ValueError
-            return str(raw_value)
+            return raw_value
         except ValueError:
-            if arg_name:
-                raise ValueError('Invalid string: "{}"="{}"'.format(arg_name, raw_value))
-            else:
-                raise ValueError('"{}" is not a valid string'.format(raw_value))
+            raise ValueError('Invalid ID: "{}"="{}"'.format(arg_name, raw_value))
 
     def validate_boolean(self, arg_name: str, required: bool = False) -> Optional[bool]:
         """
@@ -53,10 +50,7 @@ class ArgumentValidator:
                 raise ValueError
             return raw_value
         except ValueError:
-            if arg_name:
-                raise ValueError('Invalid boolean: "{}"="{}"'.format(arg_name, raw_value))
-            else:
-                raise ValueError('"{}" is not a valid boolean'.format(raw_value))
+            raise ValueError('Invalid boolean: "{}"="{}"'.format(arg_name, raw_value))
 
     def validate_datetime(self, arg_name: str, required: bool = False) -> Optional[datetime]:
         raw_value = self.args.get(arg_name)
@@ -78,10 +72,7 @@ class ArgumentValidator:
             param = raw_value[1:] if is_reversed else raw_value
             value = self.SORT_PARAM_MAPPING[param]
         except (IndexError, KeyError, ValueError):
-            if arg_name:
-                raise ValueError('Invalid sorting parameter: "{}"="{}"'.format(arg_name, raw_value))
-            else:
-                raise ValueError('"{}" is not a valid sorting parameter'.format(raw_value))
+            raise ValueError('Invalid sorting parameter: "{}"="{}"'.format(arg_name, raw_value))
 
         return f'{value}_{"DESC" if is_reversed else "ASC"}'
 
