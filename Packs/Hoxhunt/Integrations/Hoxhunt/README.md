@@ -145,13 +145,14 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | Hoxhunt.Threat.EnrichmentHops.By | string | The address the hop was directed to. |
 | Hoxhunt.Threat.EnrichmentLinks.Href | string | A possibly malicious link value. |
 | Hoxhunt.Threat.EhrichmentLinks.Label | string | A possibly malicious link label value. |
-| Hoxhunt.Threat.UserModifiers.UserActedOnThreat | boolean | Whether the user acted on the threat. |
-| Hoxhunt.Threat.UserModifiers.UserRepliedToEmail | boolean | Whether the user replied to the email message. |
-| Hoxhunt.Threat.UserModifiers.UserDownloadedFile | boolean | Whether the user downloaded an attachment. |
-| Hoxhunt.Threat.UserModifiers.UserOpenedAttachment | boolean | Whether the user opened a downloaded attachment. |
-| Hoxhunt.Threat.UserModifiers.UserVisitedLink | boolean | Whether the user visited a link in the email message. |
-| Hoxhunt.Threat.UserModifiers.UserEnteredCredentials | boolean | Whether the user entered their credentials to a page they opened from a link in the email message. |
-| Hoxhunt.Threat.UserModifiers.UserMarkedAsSpam | boolean | Whether the user marked the email message as spam. |
+| Hoxhunt.Threat.UserModifiers.ActedOnThreat | boolean | Whether the user acted on the threat. |
+| Hoxhunt.Threat.UserModifiers.RepliedToEmail | boolean | Whether the user replied to the email message. |
+| Hoxhunt.Threat.UserModifiers.DownloadedFile | boolean | Whether the user downloaded an attachment. |
+| Hoxhunt.Threat.UserModifiers.OpenedAttachment | boolean | Whether the user opened a downloaded attachment. |
+| Hoxhunt.Threat.UserModifiers.VisitedLink | boolean | Whether the user visited a link in the email message. |
+| Hoxhunt.Threat.UserModifiers.EnteredCredentials | boolean | Whether the user entered their credentials to a page they opened from a link in the email message. |
+| Hoxhunt.Threat.UserModifiers.MarkedAsSpam | boolean | Whether the user marked the email message as spam. |
+| Hoxhunt.Threat.UserModifiers.Other | boolean | Whether the user reacted to the email message in some other way. |
 
 #### Context Example
 
@@ -190,13 +191,14 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
                   }
                 ],
                 "UserModifiers": {
-                  "UserActedOnThreat": true,
-                  "UserRepliedToEmail": true,
-                  "UserDownloadedFile": true,
-                  "UserOpenedAttachment": true,
-                  "UserVisitedLink": true,
-                  "UserEnteredCredentials": true,
-                  "UserMarkedAsSpam": false
+                  "ActedOnThreat": true,
+                  "RepliedToEmail": true,
+                  "DownloadedFile": true,
+                  "OpenedAttachment": true,
+                  "VisitedLink": true,
+                  "EnteredCredentials": true,
+                  "MarkedAsSpam": false,
+                  "Other": true
                 }
             }
         ]
@@ -209,4 +211,4 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 >### Incidents:
 >|Id|Created At|Updated At|Email From|Email Attachments|Enrichment Hops|Enrichment Links|User Modifiers|
 >|---|---|---|---|---|---|---|---|
->| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | [{"Name": "Bad Guy", "Address": "suspicious.email@example.com"}] | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"UserActedOnThreat": true, "UserRepliedToEmail": true, "UserDownloadedFile": true, "UserOpenedAttachment": true, "UserVisitedLink": true, "UserEnteredCredentials": true, "UserMarkedAsSpam": false} |
+>| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | [{"Name": "Bad Guy", "Address": "suspicious.email@example.com"}] | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |

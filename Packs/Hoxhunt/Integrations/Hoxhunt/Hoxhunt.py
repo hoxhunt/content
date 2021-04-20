@@ -273,6 +273,7 @@ class HoxhuntAPIClient:
                                 visitedLink
                                 enteredCredentials
                                 userMarkedAsSpam
+                                other
                             }
                         }
                     }
@@ -305,20 +306,20 @@ class HoxhuntAPIClient:
             This is because we need to override the JSON encoder class, which `requests` doesn't allow out of the box.
             This is why the Content-Type header is also set explicitly - it'd be set automatically otherwise.
         """
+        data = json.dumps(
+            obj={'query': query, 'variables': variables or {}},
+            cls=CustomJSONEncoder
+        )
+        headers = {
+            self.AUTH_HEADER_NAME: f'{self.AUTH_TOKEN_TYPE} {self.api_key}',
+            'Content-Type': 'application/json'
+        }
+
         try:
             response = requests.post(
                 url=self.api_url,
-                data=json.dumps(
-                    obj={
-                        'query': query,
-                        'variables': variables or {}
-                    },
-                    cls=CustomJSONEncoder
-                ),
-                headers={
-                    self.AUTH_HEADER_NAME: f'{self.AUTH_TOKEN_TYPE} {self.api_key}',
-                    'Content-Type': 'application/json'
-                }
+                data=data,
+                headers=headers
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:

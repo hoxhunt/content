@@ -1,9 +1,18 @@
 import datetime
+import json
 
 import dateparser
 import pytest
 
-from Hoxhunt import ArgumentValidator
+
+DATEPARSER_SETTINGS = {
+    'TIMEZONE': 'UTC'
+}
+
+TEST_CLIENT_KWARGS = {
+    'api_key': 'test_api_key',
+    'api_url': 'https://app.hoxhunt.dev/graphql-external'
+}
 
 
 def _values_match_on_minute_level(expected: datetime.datetime, actual: datetime.datetime) -> bool:
@@ -13,6 +22,8 @@ def _values_match_on_minute_level(expected: datetime.datetime, actual: datetime.
 
 
 def test_argument_validator_id_validation():
+    from Hoxhunt import ArgumentValidator
+
     raw_value = '1234'
     value = ArgumentValidator({'id': raw_value}).validate_id('id')
     assert raw_value == value
@@ -25,6 +36,8 @@ def test_argument_validator_id_validation():
 
 
 def test_argument_validator_boolean_validation_required():
+    from Hoxhunt import ArgumentValidator
+
     true_values = (True, 'true', 'True', 'yes')
     false_values = (False, 'false', 'False', 'no')
 
@@ -47,6 +60,8 @@ def test_argument_validator_boolean_validation_required():
 
 
 def test_argument_validator_boolean_validation_optional():
+    from Hoxhunt import ArgumentValidator
+
     true_values = (True, 'true', 'True', 'yes')
     false_values = (False, 'false', 'False', 'no')
 
@@ -69,7 +84,10 @@ def test_argument_validator_boolean_validation_optional():
 
 
 def test_argument_validator_datetime_validation_required():
-    two_weeks_ago, month_ago = dateparser.parse('2 weeks'), dateparser.parse('1 month')
+    from Hoxhunt import ArgumentValidator
+
+    two_weeks_ago = dateparser.parse('2 weeks', settings=DATEPARSER_SETTINGS)
+    month_ago = dateparser.parse('1 month', settings=DATEPARSER_SETTINGS)
     beginning_of_this_month = datetime.datetime.now()
 
     for expected_value, raw_value in (
@@ -78,7 +96,9 @@ def test_argument_validator_datetime_validation_required():
             (beginning_of_this_month, beginning_of_this_month.isoformat())
     ):
         value = ArgumentValidator({'dt': raw_value}).validate_datetime('dt', required=True)
-        assert _values_match_on_minute_level(expected_value, value)
+
+        is_match = _values_match_on_minute_level(expected_value, value)
+        assert is_match is True
 
     with pytest.raises(ValueError):
         ArgumentValidator({'dt': 'invalid'}).validate_datetime('dt', required=True)
@@ -88,7 +108,10 @@ def test_argument_validator_datetime_validation_required():
 
 
 def test_argument_validator_datetime_validation_optional():
-    two_weeks_ago, month_ago = dateparser.parse('2 weeks'), dateparser.parse('1 month')
+    from Hoxhunt import ArgumentValidator
+
+    two_weeks_ago = dateparser.parse('2 weeks', settings=DATEPARSER_SETTINGS)
+    month_ago = dateparser.parse('1 month', settings=DATEPARSER_SETTINGS)
     beginning_of_this_month = datetime.datetime.now()
 
     for expected_value, raw_value in (
@@ -97,7 +120,9 @@ def test_argument_validator_datetime_validation_optional():
             (beginning_of_this_month, beginning_of_this_month.isoformat())
     ):
         value = ArgumentValidator({'dt': raw_value}).validate_datetime('dt')
-        assert _values_match_on_minute_level(expected_value, value)
+
+        is_match = _values_match_on_minute_level(expected_value, value)
+        assert is_match is True
 
     with pytest.raises(ValueError):
         ArgumentValidator({'dt': 'invalid'}).validate_datetime('dt')
@@ -107,6 +132,8 @@ def test_argument_validator_datetime_validation_optional():
 
 
 def test_argument_validator_number_validation_required():
+    from Hoxhunt import ArgumentValidator
+
     for raw_value in (1234, '1234'):
         expected_value = int(raw_value)
 
@@ -121,6 +148,8 @@ def test_argument_validator_number_validation_required():
 
 
 def test_argument_validator_number_validation_optional():
+    from Hoxhunt import ArgumentValidator
+
     for raw_value in (1234, '1234'):
         expected_value = int(raw_value)
 
@@ -135,6 +164,8 @@ def test_argument_validator_number_validation_optional():
 
 
 def test_argument_validator_sort_validation_required():
+    from Hoxhunt import ArgumentValidator
+
     for field_name in ArgumentValidator.SORT_PARAM_MAPPING.keys():
         for raw_value in (field_name, f'-{field_name}'):
             expected_field_name = ArgumentValidator.SORT_PARAM_MAPPING[field_name]
@@ -155,6 +186,8 @@ def test_argument_validator_sort_validation_required():
 
 
 def test_argument_validator_sort_validation_optional():
+    from Hoxhunt import ArgumentValidator
+
     for field_name in ArgumentValidator.SORT_PARAM_MAPPING.keys():
         for raw_value in (field_name, f'-{field_name}'):
             expected_field_name = ArgumentValidator.SORT_PARAM_MAPPING[field_name]
@@ -172,3 +205,56 @@ def test_argument_validator_sort_validation_optional():
 
     value = ArgumentValidator({}).validate_sort('sort')
     assert value is None
+
+
+def test_custom_json_encoder():
+    from Hoxhunt import CustomJSONEncoder
+
+    volatile_dict = {'dt': datetime.datetime.now()}
+
+    json_result = json.dumps(volatile_dict, cls=CustomJSONEncoder)
+    assert 'dt' in json_result
+
+    with pytest.raises(TypeError):
+        json.dumps(volatile_dict)
+
+
+def test_hoxhunt_test_module_command(requests_mock):
+    from Hoxhunt import HoxhuntAPIClient, test_module_command
+    from test_data.data import test_module_result
+
+    client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
+    requests_mock.post(client.api_url, json=test_module_result)
+
+    result = test_module_command(client)
+    assert result == 'ok'
+
+
+def test_hoxhunt_get_incidents_command(requests_mock):
+    from Hoxhunt import HoxhuntAPIClient, get_incidents_command
+    from test_data.data import get_incidents_result
+
+    client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
+    requests_mock.post(client.api_url, json=get_incidents_result)
+
+    results = get_incidents_command(client, args={}, params={})
+    assert results.outputs_prefix == 'Hoxhunt.Incident'
+    assert results.outputs_key_field == 'humanReadableId'
+    assert results.outputs == get_incidents_result['data']['incidents']
+
+
+def test_hoxhunt_get_incident_threats_command(requests_mock):
+    from Hoxhunt import HoxhuntAPIClient, get_incident_threats_command
+    from test_data.data import get_incident_threats_result
+
+    client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
+    requests_mock.post(client.api_url, json=get_incident_threats_result)
+
+    incident = get_incident_threats_result['data']['incidents'][0]
+
+    results = get_incident_threats_command(client, args={
+        'incident_id': incident['humanReadableId']
+    }, params={})
+    assert results.outputs_prefix == 'Hoxhunt.Threat'
+    assert results.outputs_key_field == '_id'
+    assert results.outputs == incident['threats']
