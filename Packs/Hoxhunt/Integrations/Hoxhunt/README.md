@@ -102,7 +102,7 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
 #### Human Readable Output
 
 >### Incidents:
->|Id|Human Readable Id|Created At|Updated At|First Reported At|Last Reported At|Type|Severity|State|Threat Count|Escalated At|Escalation Threshold|
+>|Id|HumanReadableId|CreatedAt|UpdatedAt|FirstReportedAt|LastReportedAt|Type|Severity|State|ThreatCount|EscalatedAt|EscalationThreshold|
 >|---|---|---|---|---|---|---|---|---|---|---|---|
 >| zxc12rregsdf | hox-hungry-mongoose-12 | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | CAMPAIGN | PHISH | OPEN | 10 | 2020-06-04T13:42:26.173Z | 5 |
 
@@ -119,14 +119,14 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 
 | **Argument Name** | **Description** | **Required** |
 | --- | --- | --- |
-| human_readable_id | The human-readable ID of the Incident you wish to query Threats for. | Yes |
+| incident_id | The human-readable ID of the Incident you wish to query Threats for. | Yes |
 | sort_by | Field to sort Threats by. Possible values: `CreatedAt`, `UpdatedAt`. `CreatedAt` by default (oldest first by creation). Prefix with `-` for newest-first order. | No |
 | page_size | Amount of Threats to fetch at once. Defaults to the global `max_fetch` value. | No | 
 | page | Set of Threats to fetch. Defaults to `1`. | No |
 
 #### Command Example
 
-```!hoxhunt-get-incident-threats human_readable_id="hox-dangerous-incident-1"```
+```!hoxhunt-get-incident-threats incident_id="hox-dangerous-incident-1"```
 
 #### Context Output
 
@@ -135,12 +135,12 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | Hoxhunt.Threat.Id | string | Machine-generated ID of the Threat. | 
 | Hoxhunt.Threat.CreatedAt | date | ISO 8601 timestamp string of when the Threat was created. | 
 | Hoxhunt.Threat.UpdatedAt | date | ISO 8601 timestamp string of when the Threat was last updated. |
-| Hoxhunt.Threat.EmailFrom.Name | string | An email sender name field value. |
-| Hoxhunt.Threat.EmailFrom.Address | string | An email sender address field value. |
-| Hoxhunt.Threat.EmailAttachments.Name | string | An attachment file name value. |
-| Hoxhunt.Threat.EmailAttachments.Type | string | An attachment content type value. |
-| Hoxhunt.Threat.EmailAttachments.Hash | string | An attachment content hash value. |
-| Hoxhunt.Threat.EmailAttachments.Size | number | An attachment content size in bytes. |
+| Hoxhunt.Threat.From.Name | string | An email sender name field value. |
+| Hoxhunt.Threat.From.Address | string | An email sender address field value. |
+| Hoxhunt.Threat.Attachments.Name | string | An attachment file name value. |
+| Hoxhunt.Threat.Attachments.Type | string | An attachment content type value. |
+| Hoxhunt.Threat.Attachments.Hash | string | An attachment content hash value. |
+| Hoxhunt.Threat.Attachments.Size | number | An attachment content size in bytes. |
 | Hoxhunt.Threat.EnrichmentHops.From | string | The address the hop originated from. |
 | Hoxhunt.Threat.EnrichmentHops.By | string | The address the hop was directed to. |
 | Hoxhunt.Threat.EnrichmentLinks.Href | string | A possibly malicious link value. |
@@ -164,13 +164,11 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
                 "Id": "rth675iofjy",
                 "CreatedAt": "2020-06-04T13:42:26.173Z",
                 "UpdatedAt": "2020-06-04T13:42:26.173Z",
-                "EmailFrom": [
-                  {
-                    "Name": "Bad Guy",
-                    "Address": "suspicious.email@example.com"
-                  }
-                ],
-                "EmailAttachments": [
+                "From": {
+                  "Name": "Bad Guy",
+                  "Address": "suspicious.email@example.com"
+                },
+                "Attachments": [
                   {
                     "Name": "this-is-definitely-not-a-virus.zip",
                     "Type": "application/zip",
@@ -209,6 +207,6 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 #### Human Readable Output
 
 >### Incidents:
->|Id|Created At|Updated At|Email From|Email Attachments|Enrichment Hops|Enrichment Links|User Modifiers|
+>|Id|CreatedAt|UpdatedAt|From|Attachments|EnrichmentHops|EnrichmentLinks|UserModifiers|
 >|---|---|---|---|---|---|---|---|
->| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | [{"Name": "Bad Guy", "Address": "suspicious.email@example.com"}] | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |
+>| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | {"Name": "Bad Guy", "Address": "suspicious.email@example.com"} | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |

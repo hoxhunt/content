@@ -1,7 +1,7 @@
 {
     "name": "Hoxhunt",
-    "description": "Integration for the Hoxhunt platform.",
-    "support": "community",
+    "description": "Retrieve collections of reported phishing emails and their indicators from Hoxhunt.",
+    "support": "developer",
     "currentVersion": "1.0.0",
     "author": "Hoxhunt",
     "url": "https://live.paloaltonetworks.com/t5/cortex-xsoar-discussions/bd-p/Cortex_XSOAR_Discussions",
