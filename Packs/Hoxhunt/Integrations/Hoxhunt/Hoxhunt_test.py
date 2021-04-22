@@ -1,5 +1,6 @@
 import datetime
 import json
+from copy import deepcopy
 
 import dateparser
 import pytest
@@ -19,6 +20,22 @@ def _values_match_on_minute_level(expected: datetime.datetime, actual: datetime.
     def strip(val):
         return val.replace(second=0, microsecond=0)
     return strip(expected) == strip(actual)
+
+
+def test_to_camel_case():
+    from Hoxhunt import to_camel_case
+    assert 'thisIsTheKey' == to_camel_case('ThisIsTheKey')
+
+    with pytest.raises(IndexError):
+        to_camel_case('')
+
+
+def test_to_pascal_case():
+    from Hoxhunt import to_pascal_case
+    assert 'ThisIsTheKey' == to_pascal_case('thisIsTheKey')
+
+    with pytest.raises(IndexError):
+        to_pascal_case('')
 
 
 def test_argument_validator_id_validation():
@@ -219,6 +236,70 @@ def test_custom_json_encoder():
         json.dumps(volatile_dict)
 
 
+def test_convert_incident_func():
+    from Hoxhunt import convert_incident
+    from test_data.data import get_incidents_result
+
+    expected_keys = {
+        'Id', 'HumanReadableId', 'CreatedAt', 'UpdatedAt', 'FirstReportedAt', 'LastReportedAt', 'Type', 'Severity',
+        'State', 'ThreatCount', 'EscalatedAt', 'EscalationThreshold'
+    }
+
+    hoxhunt_incident = get_incidents_result['data']['incidents'][0]
+    xsoar_incident = convert_incident(hoxhunt_incident)
+
+    assert expected_keys == set(xsoar_incident.keys())
+    assert xsoar_incident['EscalatedAt'] == hoxhunt_incident['escalation']['escalatedAt']
+    assert xsoar_incident['EscalationThreshold'] == hoxhunt_incident['escalation']['escalationThreshold']
+
+    non_escalated_hoxhunt_incident = deepcopy(hoxhunt_incident)
+    non_escalated_hoxhunt_incident.update({'escalation': None})
+    non_escalated_xsoar_incident = convert_incident(non_escalated_hoxhunt_incident)
+
+    assert expected_keys == set(non_escalated_xsoar_incident.keys())
+    assert non_escalated_xsoar_incident['EscalatedAt'] is None
+    assert non_escalated_xsoar_incident['EscalationThreshold'] is None
+
+
+def test_convert_threat_func():
+    from Hoxhunt import convert_threat
+    from test_data.data import get_incident_threats_result
+
+    expected_keys = {'Id', 'CreatedAt', 'UpdatedAt', 'From', 'Attachments', 'Hops', 'Links', 'UserModifiers'}
+    from_expected_keys = {'Name', 'Address'}
+    attachments_expected_keys = {'Name', 'Type', 'Hash', 'Size'}
+    hops_expected_keys = {'From', 'By'}
+    links_expected_keys = {'Href', 'Label'}
+    user_modifiers_expected_keys = {
+        'ActedOnThreat', 'RepliedToEmail', 'DownloadedFile', 'OpenedAttachment', 'VisitedLink',
+        'EnteredCredentials', 'MarkedAsSpam', 'Other'
+    }
+
+    def _compare_keys(actual):
+        assert expected_keys == set(actual.keys())
+        assert from_expected_keys == set(actual['From'].keys())
+        assert attachments_expected_keys == set(actual['Attachments'][0].keys())
+        assert hops_expected_keys == set(actual['Hops'][0].keys())
+        assert links_expected_keys == set(actual['Links'][0].keys())
+        assert user_modifiers_expected_keys == set(actual['UserModifiers'].keys())
+
+    hoxhunt_threat = get_incident_threats_result['data']['incidents'][0]['threats'][0]
+    xsoar_threat = convert_threat(hoxhunt_threat)
+
+    _compare_keys(xsoar_threat)
+    assert list(xsoar_threat['UserModifiers'].values()) == list(hoxhunt_threat['userModifiers'].values())
+
+    without_user_modifiers_hoxhunt_threat = deepcopy(hoxhunt_threat)
+    without_user_modifiers_hoxhunt_threat.update({'userModifiers': None})
+    without_user_modifiers_xsoar_threat = convert_threat(without_user_modifiers_hoxhunt_threat)
+
+    _compare_keys(without_user_modifiers_xsoar_threat)
+    assert all(
+        without_user_modifiers_xsoar_threat['UserModifiers'][attr] is False
+        for attr in user_modifiers_expected_keys
+    )
+
+
 def test_hoxhunt_test_module_command(requests_mock):
     from Hoxhunt import HoxhuntAPIClient, test_module_command
     from test_data.data import test_module_result
@@ -231,20 +312,25 @@ def test_hoxhunt_test_module_command(requests_mock):
 
 
 def test_hoxhunt_get_incidents_command(requests_mock):
-    from Hoxhunt import HoxhuntAPIClient, get_incidents_command
+    from Hoxhunt import HoxhuntAPIClient, convert_incident, get_incidents_command
     from test_data.data import get_incidents_result
 
     client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
     requests_mock.post(client.api_url, json=get_incidents_result)
 
     results = get_incidents_command(client, args={}, params={})
+
+    raw_response = get_incidents_result['data']['incidents']
+    outputs = [convert_incident(incident) for incident in raw_response]
+
     assert results.outputs_prefix == 'Hoxhunt.Incident'
-    assert results.outputs_key_field == 'humanReadableId'
-    assert results.outputs == get_incidents_result['data']['incidents']
+    assert results.outputs_key_field == 'HumanReadableId'
+    assert results.outputs == outputs
+    assert results.raw_response == raw_response
 
 
 def test_hoxhunt_get_incident_threats_command(requests_mock):
-    from Hoxhunt import HoxhuntAPIClient, get_incident_threats_command
+    from Hoxhunt import HoxhuntAPIClient, convert_threat, get_incident_threats_command
     from test_data.data import get_incident_threats_result
 
     client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
@@ -255,6 +341,11 @@ def test_hoxhunt_get_incident_threats_command(requests_mock):
     results = get_incident_threats_command(client, args={
         'incident_id': incident['humanReadableId']
     }, params={})
+
+    raw_response = incident['threats']
+    outputs = [convert_threat(threat) for threat in raw_response]
+
     assert results.outputs_prefix == 'Hoxhunt.Threat'
-    assert results.outputs_key_field == '_id'
-    assert results.outputs == incident['threats']
+    assert results.outputs_key_field == 'Id'
+    assert results.outputs == outputs
+    assert results.raw_response == raw_response

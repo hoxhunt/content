@@ -16,65 +16,16 @@ AnyDict = Dict[str, Any]
 ListOfDicts = List[AnyDict]
 
 
-class ArgumentValidator:
-    SORT_PARAM_MAPPING = {
-        'CreatedAt': 'createdAt',
-        'UpdatedAt': 'updatedAt'
-    }
+def _to_case(case_func: Callable, key: str) -> str:
+    return f'{case_func(key[0])}{key[1:]}'
 
-    def __init__(self, args: AnyDict):
-        self.args = args
 
-    def validate_id(self, arg_name: str) -> str:
-        raw_value = self.args.get(arg_name)
+def to_pascal_case(key: str) -> str:
+    return _to_case(lambda char: char.upper(), key)
 
-        try:
-            if raw_value is None or not isinstance(raw_value, str):
-                raise ValueError
-            return raw_value
-        except ValueError:
-            raise ValueError('Invalid ID: "{}"="{}"'.format(arg_name, raw_value))
 
-    def validate_boolean(self, arg_name: str, required: bool = False) -> Optional[bool]:
-        """
-        More verbose error message in case the user specifies an invalid boolean value.
-        Clearly the `argToBoolean` function has been written by someone else than `arg_to_datetime`
-        or `arg_to_number`.
-        """
-        raw_value = self.args.get(arg_name)
-
-        try:
-            if raw_value is not None:
-                return argToBoolean(raw_value)
-            if required:
-                raise ValueError
-            return raw_value
-        except ValueError:
-            raise ValueError('Invalid boolean: "{}"="{}"'.format(arg_name, raw_value))
-
-    def validate_datetime(self, arg_name: str, required: bool = False) -> Optional[datetime]:
-        raw_value = self.args.get(arg_name)
-        return arg_to_datetime(raw_value, arg_name=arg_name, required=required)
-
-    def validate_int(self, arg_name: str, required: bool = False) -> Optional[int]:
-        raw_value = self.args.get(arg_name)
-        return arg_to_number(raw_value, arg_name=arg_name, required=required)
-
-    def validate_sort(self, arg_name: str, required: bool = False) -> Optional[str]:
-        raw_value = self.args.get(arg_name)
-
-        try:
-            if raw_value is None:
-                if required:
-                    raise ValueError
-                return raw_value
-            is_reversed = raw_value[0] == '-'
-            param = raw_value[1:] if is_reversed else raw_value
-            value = self.SORT_PARAM_MAPPING[param]
-        except (IndexError, KeyError, ValueError):
-            raise ValueError('Invalid sorting parameter: "{}"="{}"'.format(arg_name, raw_value))
-
-        return f'{value}_{"DESC" if is_reversed else "ASC"}'
+def to_camel_case(key: str) -> str:
+    return _to_case(lambda char: char.lower(), key)
 
 
 class IncidentStates:
@@ -334,6 +285,115 @@ class HoxhuntAPIClient:
         return getter_func(data)
 
 
+class ArgumentValidator:
+    SORT_PARAM_MAPPING = {
+        'CreatedAt': 'createdAt',
+        'UpdatedAt': 'updatedAt'
+    }
+
+    def __init__(self, args: AnyDict):
+        self.args = args
+
+    def validate_id(self, arg_name: str) -> str:
+        raw_value = self.args.get(arg_name)
+
+        try:
+            if raw_value is None or not isinstance(raw_value, str):
+                raise ValueError
+            return raw_value
+        except ValueError:
+            raise ValueError('Invalid ID: "{}"="{}"'.format(arg_name, raw_value))
+
+    def validate_boolean(self, arg_name: str, required: bool = False) -> Optional[bool]:
+        """
+        More verbose error message in case the user specifies an invalid boolean value.
+        Clearly the `argToBoolean` function has been written by someone else than `arg_to_datetime`
+        or `arg_to_number`.
+        """
+        raw_value = self.args.get(arg_name)
+
+        try:
+            if raw_value is not None:
+                return argToBoolean(raw_value)
+            if required:
+                raise ValueError
+            return raw_value
+        except ValueError:
+            raise ValueError('Invalid boolean: "{}"="{}"'.format(arg_name, raw_value))
+
+    def validate_datetime(self, arg_name: str, required: bool = False) -> Optional[datetime]:
+        raw_value = self.args.get(arg_name)
+        return arg_to_datetime(raw_value, arg_name=arg_name, required=required)
+
+    def validate_int(self, arg_name: str, required: bool = False) -> Optional[int]:
+        raw_value = self.args.get(arg_name)
+        return arg_to_number(raw_value, arg_name=arg_name, required=required)
+
+    def validate_sort(self, arg_name: str, required: bool = False) -> Optional[str]:
+        raw_value = self.args.get(arg_name)
+
+        try:
+            if raw_value is None:
+                if required:
+                    raise ValueError
+                return raw_value
+            is_reversed = raw_value[0] == '-'
+            param = raw_value[1:] if is_reversed else raw_value
+            value = self.SORT_PARAM_MAPPING[param]
+        except (IndexError, KeyError, ValueError):
+            raise ValueError('Invalid sorting parameter: "{}"="{}"'.format(arg_name, raw_value))
+
+        return f'{value}_{"DESC" if is_reversed else "ASC"}'
+
+
+def dict_to_pascal_case(obj: dict) -> dict:
+    return {to_pascal_case(key): value for key, value in obj.items()}
+
+
+def list_of_dicts_to_pascal_case(objs: ListOfDicts) -> ListOfDicts:
+    return [dict_to_pascal_case(obj) for obj in objs]
+
+
+def convert_incident(hoxhunt_incident: dict) -> dict:
+    basic_data = {key: value for key, value in hoxhunt_incident.items() if key not in ('_id', 'escalation')}
+    escalation_data = hoxhunt_incident['escalation'] or {key: None for key in ('escalatedAt', 'escalationThreshold')}
+
+    return {
+        'Id': hoxhunt_incident['_id'],
+        **dict_to_pascal_case(basic_data),
+        **dict_to_pascal_case(escalation_data)
+    }
+
+
+def convert_threat(hoxhunt_threat: dict) -> dict:
+    basic_data = {key: value for key, value in hoxhunt_threat.items() if key in ('createdAt', 'updatedAt')}
+    # Due to a design "flaw", the Hoxhunt Threat object has a list of email message senders, but the list always
+    # contains only one object.
+    from_data = hoxhunt_threat['email']['from'][0]
+    attachments_data = hoxhunt_threat['email']['attachments']
+    hops_data = hoxhunt_threat['enrichments']['hops']
+    links_data = hoxhunt_threat['enrichments']['links']
+    user_modifiers_data = {
+        key.replace('user', ''): value
+        for key, value in (hoxhunt_threat['userModifiers'] or {
+            attr: False for attr in (
+                'userActedOnThreat', 'repliedToEmail', 'downloadedFile', 'openedAttachment', 'visitedLink',
+                'enteredCredentials', 'userMarkedAsSpam', 'other'
+            )
+        }).items()
+    }
+
+    return {
+        'Id': hoxhunt_threat['_id'],
+        **dict_to_pascal_case(basic_data),
+        'From': dict_to_pascal_case(from_data),
+        'Attachments': list_of_dicts_to_pascal_case(attachments_data),
+        'Hops': list_of_dicts_to_pascal_case(hops_data),
+        'Links': list_of_dicts_to_pascal_case(links_data),
+        'UserModifiers': dict_to_pascal_case(user_modifiers_data)
+    }
+
+
 def test_module_command(client: HoxhuntAPIClient):
     client.do_test_request()
     return 'ok'
@@ -364,18 +424,20 @@ def get_incidents_command(
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
     page = args_validator.validate_int('page') or 1
 
-    hoxhunt_incidents = client.do_fetch_incidents_request(
+    raw_response = client.do_fetch_incidents_request(
         search=search,
         filters=filters,
         sort=sort_by,
         first=page_size,
         skip=(page - 1) * page_size
     )
+    outputs = [convert_incident(incident) for incident in raw_response]
 
     return CommandResults(
         outputs_prefix='Hoxhunt.Incident',
-        outputs_key_field='humanReadableId',
-        outputs=hoxhunt_incidents
+        outputs_key_field='HumanReadableId',
+        outputs=outputs,
+        raw_response=raw_response
     )
 
 
@@ -393,17 +455,19 @@ def get_incident_threats_command(
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
     page = args_validator.validate_int('page') or 1
 
-    hoxhunt_threats = client.do_fetch_incident_threats_request(
+    raw_response = client.do_fetch_incident_threats_request(
         incident_id=incident_id,
         sort=sort_by,
         first=page_size,
         skip=(page - 1) * page_size
     )
+    outputs = [convert_threat(threat) for threat in raw_response]
 
     return CommandResults(
         outputs_prefix='Hoxhunt.Threat',
-        outputs_key_field='_id',
-        outputs=hoxhunt_threats
+        outputs_key_field='Id',
+        outputs=outputs,
+        raw_response=raw_response
     )
 
 
