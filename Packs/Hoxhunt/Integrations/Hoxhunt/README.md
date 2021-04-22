@@ -141,10 +141,10 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | Hoxhunt.Threat.Attachments.Type | string | An attachment content type value. |
 | Hoxhunt.Threat.Attachments.Hash | string | An attachment content hash value. |
 | Hoxhunt.Threat.Attachments.Size | number | An attachment content size in bytes. |
-| Hoxhunt.Threat.EnrichmentHops.From | string | The address the hop originated from. |
-| Hoxhunt.Threat.EnrichmentHops.By | string | The address the hop was directed to. |
-| Hoxhunt.Threat.EnrichmentLinks.Href | string | A possibly malicious link value. |
-| Hoxhunt.Threat.EhrichmentLinks.Label | string | A possibly malicious link label value. |
+| Hoxhunt.Threat.Hops.From | string | The address the hop originated from. |
+| Hoxhunt.Threat.Hops.By | string | The address the hop was directed to. |
+| Hoxhunt.Threat.Links.Href | string | A possibly malicious link value. |
+| Hoxhunt.Threat.Links.Label | string | A possibly malicious link label value. |
 | Hoxhunt.Threat.UserModifiers.ActedOnThreat | boolean | Whether the user acted on the threat. |
 | Hoxhunt.Threat.UserModifiers.RepliedToEmail | boolean | Whether the user replied to the email message. |
 | Hoxhunt.Threat.UserModifiers.DownloadedFile | boolean | Whether the user downloaded an attachment. |
@@ -176,13 +176,13 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
                     "Size": 32
                   }
                 ],
-                "EnrichmentHops": [
+                "Hops": [
                   {
                     "From": "malware-server.com:1234",
                     "By": "other-malware-server.com:4321"
                   }
                 ],
-                "EnrichmentLinks": [
+                "Links": [
                   {
                     "Href": "https://free-cat-pictures.xyz/register",
                     "Label": "CLICK HERE FOR FREE HD CAT PICS!!"
@@ -207,6 +207,6 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 #### Human Readable Output
 
 >### Incidents:
->|Id|CreatedAt|UpdatedAt|From|Attachments|EnrichmentHops|EnrichmentLinks|UserModifiers|
+>|Id|CreatedAt|UpdatedAt|From|Attachments|Hops|Links|UserModifiers|
 >|---|---|---|---|---|---|---|---|
 >| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | {"Name": "Bad Guy", "Address": "suspicious.email@example.com"} | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |
