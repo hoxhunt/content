@@ -265,7 +265,9 @@ def test_convert_threat_func():
     from Hoxhunt import convert_threat
     from test_data.data import get_incident_threats_result
 
-    expected_keys = {'Id', 'CreatedAt', 'UpdatedAt', 'From', 'Attachments', 'Hops', 'Links', 'UserModifiers'}
+    expected_keys = {
+        'Id', 'CreatedAt', 'UpdatedAt', 'Severity', 'From', 'Attachments', 'Hops', 'Links', 'UserModifiers'
+    }
     from_expected_keys = {'Name', 'Address'}
     attachments_expected_keys = {'Name', 'Type', 'Hash', 'Size'}
     hops_expected_keys = {'From', 'By'}

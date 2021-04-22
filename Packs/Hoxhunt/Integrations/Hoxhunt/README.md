@@ -135,6 +135,7 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | Hoxhunt.Threat.Id | string | Machine-generated ID of the Threat. | 
 | Hoxhunt.Threat.CreatedAt | date | ISO 8601 timestamp string of when the Threat was created. | 
 | Hoxhunt.Threat.UpdatedAt | date | ISO 8601 timestamp string of when the Threat was last updated. |
+| Hoxhunt.Threat.Severity | string | The Threat's severity. Possible values are the same as with Incidents. |
 | Hoxhunt.Threat.From.Name | string | An email sender name field value. |
 | Hoxhunt.Threat.From.Address | string | An email sender address field value. |
 | Hoxhunt.Threat.Attachments.Name | string | An attachment file name value. |
@@ -164,6 +165,7 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
                 "Id": "rth675iofjy",
                 "CreatedAt": "2020-06-04T13:42:26.173Z",
                 "UpdatedAt": "2020-06-04T13:42:26.173Z",
+                "Severity": "PHISH",
                 "From": {
                   "Name": "Bad Guy",
                   "Address": "suspicious.email@example.com"
@@ -207,6 +209,6 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 #### Human Readable Output
 
 >### Incidents:
->|Id|CreatedAt|UpdatedAt|From|Attachments|Hops|Links|UserModifiers|
->|---|---|---|---|---|---|---|---|
->| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | {"Name": "Bad Guy", "Address": "suspicious.email@example.com"} | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |
+>|Id|CreatedAt|UpdatedAt|Severity|From|Attachments|Hops|Links|UserModifiers|
+>|---|---|---|---|---|---|---|---|---|
+>| zxc12rregsdf | 2020-06-04T13:42:26.173Z | 2020-06-04T13:42:26.173Z | PHISH | {"Name": "Bad Guy", "Address": "suspicious.email@example.com"} | [{"Name": "this-is-definitely-not-a-virus.zip", "Type": "application/zip", "Hash": "f87c4bd3b606b34fdcef2b3f01bc0e9f", "Size": 32}] | [{"From": "malware-server.com:1234", "By": "other-malware-server.com:4321"}] | [{"Href": "https://free-cat-pictures.xyz/register", "Label": "CLICK HERE FOR FREE HD CAT PICS!!"}] | {"ActedOnThreat": true, "RepliedToEmail": true, "DownloadedFile": true, "OpenedAttachment": true, "VisitedLink": true, "EnteredCredentials": true, "MarkedAsSpam": false, "Other": true} |

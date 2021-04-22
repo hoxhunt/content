@@ -45,6 +45,7 @@ get_incident_threats_result = {
                         '_id': 'rth675iofjy',
                         'createdAt': '2020-06-04T13:42:26.173Z',
                         'updatedAt': '2020-06-04T13:42:26.173Z',
+                        'severity': get_incidents_result['data']['incidents'][0]['severity'],
                         'email': {
                             'from': [
                                 {

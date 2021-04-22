@@ -194,6 +194,7 @@ class HoxhuntAPIClient:
                             _id
                             createdAt
                             updatedAt
+                            severity
                             email {
                                 from {
                                     address
@@ -366,13 +367,19 @@ def convert_incident(hoxhunt_incident: dict) -> dict:
 
 
 def convert_threat(hoxhunt_threat: dict) -> dict:
-    basic_data = {key: value for key, value in hoxhunt_threat.items() if key in ('createdAt', 'updatedAt')}
-    # Due to a design "flaw", the Hoxhunt Threat object has a list of email message senders, but the list always
-    # contains only one object.
-    from_data = hoxhunt_threat['email']['from'][0]
-    attachments_data = hoxhunt_threat['email']['attachments']
-    hops_data = hoxhunt_threat['enrichments']['hops']
-    links_data = hoxhunt_threat['enrichments']['links']
+    basic_data = {key: value for key, value in hoxhunt_threat.items() if key in ('createdAt', 'updatedAt', 'severity')}
+
+    # Due to a design "flaw", the Hoxhunt Threat object has a list of email message senders, when conceptually
+    # a single object would make more sense. The list _should_ always include one object instead of being empty.
+    try:
+        from_data = hoxhunt_threat['email']['from'][0]
+    except IndexError:
+        from_data = {'name': None, 'address': None}
+
+    attachments_data = hoxhunt_threat['email']['attachments'] or []
+    hops_data = hoxhunt_threat['enrichments']['hops'] or []
+    links_data = hoxhunt_threat['enrichments']['links'] or []
+
     user_modifiers_data = {
         key.replace('user', ''): value
         for key, value in (hoxhunt_threat['userModifiers'] or {
