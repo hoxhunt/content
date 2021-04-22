@@ -420,28 +420,24 @@ def main() -> None:
     try:
 
         demisto.debug(f'Command being called is {command}')
+        results = None
 
         if command == 'test-module':
-            msg = test_module_command(client)
-            return_results(msg)
-
+            results = test_module_command(client=client)
         elif command == 'hoxhunt-get-incidents':
-            return_results(
-                results=get_incidents_command(
-                    client=client,
-                    args=args,
-                    params=params
-                )
+            results = get_incidents_command(
+                client=client,
+                args=args,
+                params=params
+            )
+        elif command == 'hoxhunt-get-incident-threats':
+            results = get_incident_threats_command(
+                client=client,
+                args=args,
+                params=params
             )
 
-        elif command == 'hoxhunt-get-incident-threats':
-            return_results(
-                results=get_incident_threats_command(
-                    client,
-                    args=args,
-                    params=params
-                )
-            )
+        return_results(results)
 
     except Exception as e:
         demisto.error(traceback.format_exc())
