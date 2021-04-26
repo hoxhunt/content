@@ -99,13 +99,107 @@ script:
       type: String
     - contextPath: Hoxhunt.Incident.ThreatCount
       description: 'Amount of Threats associated with this Incident. For Incidents with type "USER_ACTED_ON_THREAT", this is always 1'
-      type: String
+      type: Number
     - contextPath: Hoxhunt.Incident.EscalatedAt
       description: 'ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is NULL'
       type: String
     - contextPath: Hoxhunt.Incident.EscalationThreshold
       description: 'The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its Type is "USER_ACTED_ON_THREAT", this field is NULL'
+      type: Number
+  - name: hoxhunt-get-incident-threats
+    description: 'Fetches a list of Hoxhunt Threat objects associated with an Incident using supplied arguments.'
+    arguments:
+    - name: incident_id
+      description: 'Human-readable ID of the Incident you want to fetch Threats for.'
+      default: true
+      isArray: false
+      secret: false
+      required: true
+    - name: sort_by
+      description: 'Field to sort Incidents by. Possible values: CreatedAt, UpdatedAt. Prefix with "-" for reverse order. CreatedAt by default (oldest by creation first). '
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: page_size
+      description: 'Amount of Incidents to fetch at once. Defaults to the max_fetch integration parameter.'
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: page
+      description: 'Set of Incidents to fetch. Defaults to 1.'
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    outputs:
+    - contextPath: Hoxhunt.Threat.Id
+      description: 'Machine-generated ID of the Threat'
       type: String
+    - contextPath: Hoxhunt.Threat.CreatedAt
+      description: 'ISO 8601 timestamp string of when the Threat was created'
+      type: String
+    - contextPath: Hoxhunt.Threat.UpdatedAt
+      description: 'ISO 8601 timestamp string of when the Threat was last updated'
+      type: String
+    - contextPath: Hoxhunt.Threat.Severity
+      description: 'Threat severity. Possible values: "PHISH", "SPEAR", or "COMPROMISED_EMAIL"'
+      type: String
+    - contextPath: Hoxhunt.Threat.From.Name
+      description: 'Email message sender name'
+      type: String
+    - contextPath: Hoxhunt.Threat.From.Address
+      description: 'Email message sender address'
+      type: String
+    - contextPath: Hoxhunt.Threat.Attachments.Name
+      description: 'Attachment file name'
+      type: String
+    - contextPath: Hoxhunt.Threat.Attachments.Type
+      description: 'Attachment file content type'
+      type: String
+    - contextPath: Hoxhunt.Threat.Attachments.Hash
+      description: 'Attachment file content hash value'
+      type: String
+    - contextPath: Hoxhunt.Threat.Attachments.Size
+      description: 'Attachment file size in bytes'
+      type: Number
+    - contextPath: Hoxhunt.Threat.Hops.From
+      description: 'Email server address the message bounced from'
+      type: String
+    - contextPath: Hoxhunt.Threat.Hops.By
+      description: 'Email server address the message was directed to'
+      type: String
+    - contextPath: Hoxhunt.Threat.Links.Href
+      description: 'Possibly malicious HTTP link parsed from the email message body'
+      type: String
+    - contextPath: Hoxhunt.Threat.Links.Label
+      description: 'Text label associated with the link'
+      type: String
+    - contextPath: Hoxhunt.Threat.UserModifiers.ActedOnThreat
+      description: 'Whether a user has acted on the Threat'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.RepliedToEmail
+      description: 'Whether a user has replied to the email message'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.DownloadedFile
+      description: 'Whether a user has downloaded an attachment file'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.OpenedAttachment
+      description: 'Whether a user has opened a downloaded attachment file'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.VisitedLink
+      description: 'Whether a user has opened a link in the email message'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.EnteredCredentials
+      description: 'Whether a user has entered their credentials to a form behind a link in the email message'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.MarkedAsSpam
+      description: 'Whether a user has marked the email message as spam'
+      type: Boolean
+    - contextPath: Hoxhunt.Threat.UserModifiers.Other
+      description: 'Whether a user has acted on the threat in some other way'
+      type: Boolean
   type: python
   subtype: python3
 fromversion: 5.5.0

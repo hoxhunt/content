@@ -63,15 +63,15 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
 | --- | --- | --- |
 | Hoxhunt.Incident.Id | string | Machine-generated ID of the Incident. |
 | Hoxhunt.Incident.HumanReadableId | string | Human-readable ID of the Incident. |
-| Hoxhunt.Incident.CreatedAt | date | ISO 8601 timestamp string of when the Incident was created. | 
-| Hoxhunt.Incident.UpdatedAt | date | ISO 8601 timestamp string of when the Incident was last updated. | 
-| Hoxhunt.Incident.FirstReportedAt | date | ISO 8601 timestamp string of when the Incident was first reported. | 
-| Hoxhunt.Incident.LastUpdatedAt | date | ISO 8601 timestamp string of when the Incident was last reported. | 
+| Hoxhunt.Incident.CreatedAt | string | ISO 8601 timestamp string of when the Incident was created. | 
+| Hoxhunt.Incident.UpdatedAt | string | ISO 8601 timestamp string of when the Incident was last updated. | 
+| Hoxhunt.Incident.FirstReportedAt | string | ISO 8601 timestamp string of when the Incident was first reported. | 
+| Hoxhunt.Incident.LastUpdatedAt | string | ISO 8601 timestamp string of when the Incident was last reported. | 
 | Hoxhunt.Incident.Type | string | Incident type. | 
 | Hoxhunt.Incident.Severity | string | Incident severity. | 
 | Hoxhunt.Incident.State | string | Incident state (always `OPEN`). | 
 | Hoxhunt.Incident.ThreatCount | number | Amount of Threats associated with this Incident. | 
-| Hoxhunt.Incident.EscalatedAt | date | ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is `null`. | 
+| Hoxhunt.Incident.EscalatedAt | string | ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is `null`. | 
 | Hoxhunt.Incident.EscalationThreshold | number | The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its `Type` is `USER_ACTED_ON_THREAT`, this field is `null`. | 
 
 #### Context Example
@@ -133,8 +133,8 @@ Runs a query that fetches a list of Threat objects associated with an Incident.
 | **Path** | **Type** | **Description** |
 | --- | --- | --- |
 | Hoxhunt.Threat.Id | string | Machine-generated ID of the Threat. | 
-| Hoxhunt.Threat.CreatedAt | date | ISO 8601 timestamp string of when the Threat was created. | 
-| Hoxhunt.Threat.UpdatedAt | date | ISO 8601 timestamp string of when the Threat was last updated. |
+| Hoxhunt.Threat.CreatedAt | string | ISO 8601 timestamp string of when the Threat was created. | 
+| Hoxhunt.Threat.UpdatedAt | string | ISO 8601 timestamp string of when the Threat was last updated. |
 | Hoxhunt.Threat.Severity | string | The Threat's severity. Possible values are the same as with Incidents. |
 | Hoxhunt.Threat.From.Name | string | An email sender name field value. |
 | Hoxhunt.Threat.From.Address | string | An email sender address field value. |
