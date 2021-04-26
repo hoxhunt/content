@@ -44,10 +44,10 @@ You can also provide additional filter arguments:
 
 | **Argument Name** | **Description** | **Required** |
 | --- | --- | --- |
-| is_escalated | Whether the command should fetch Incidents escalated by Hoxhunt or not. `false` by default. | No |
+| is_escalated | Whether the command should fetch Incidents escalated by Hoxhunt or not. Use a boolean value, or leave empty to fetch both escalated and non-escalated Incidents. | No |
 | first_reported_at | Filter Incidents that were first reported after this time. | No | 
 | last_reported_at | Filter Incidents that were last reported after this time. | No |
-| sort_by | Field to sort Incidents by. Possible values: `CreatedAt`, `UpdatedAt`. `CreatedAt` by default (oldest first by creation). Prefix with `-` for newest-first order. | No |
+| sort_by | Field to sort Incidents by. Possible values: `CreatedAt`, `UpdatedAt`. Prefix with `-` for reverse order. `CreatedAt` by default (oldest by creation first). | No |
 | page_size | Amount of Incidents to fetch at once. Defaults to the global `max_fetch` value. | No | 
 | page | Set of Incidents to fetch. Defaults to `1`. | No |
 
@@ -65,14 +65,14 @@ You can use timeago-style timestamps for parameters, for example: `2 weeks`, `1 
 | Hoxhunt.Incident.HumanReadableId | string | Human-readable ID of the Incident. |
 | Hoxhunt.Incident.CreatedAt | date | ISO 8601 timestamp string of when the Incident was created. | 
 | Hoxhunt.Incident.UpdatedAt | date | ISO 8601 timestamp string of when the Incident was last updated. | 
-| Hoxhunt.Incident.FirstReportedAt | date | ISO 8601 timestamp string of when the Incident was first reported by a user. | 
-| Hoxhunt.Incident.LastUpdatedAt | date | ISO 8601 timestamp string of when the Incident was last reported by a user. | 
+| Hoxhunt.Incident.FirstReportedAt | date | ISO 8601 timestamp string of when the Incident was first reported. | 
+| Hoxhunt.Incident.LastUpdatedAt | date | ISO 8601 timestamp string of when the Incident was last reported. | 
 | Hoxhunt.Incident.Type | string | Incident type. | 
 | Hoxhunt.Incident.Severity | string | Incident severity. | 
 | Hoxhunt.Incident.State | string | Incident state (always `OPEN`). | 
-| Hoxhunt.Incident.ThreatCount | number | The amount of Threats associated with this Incident. | 
+| Hoxhunt.Incident.ThreatCount | number | Amount of Threats associated with this Incident. | 
 | Hoxhunt.Incident.EscalatedAt | date | ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is `null`. | 
-| Hoxhunt.Incident.EscalationThreshold | number | The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its `Type` is `USER_ACTED_ON_THREAT`, this field is `null`.| 
+| Hoxhunt.Incident.EscalationThreshold | number | The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its `Type` is `USER_ACTED_ON_THREAT`, this field is `null`. | 
 
 #### Context Example
 

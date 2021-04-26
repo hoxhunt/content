@@ -3,53 +3,111 @@ commonfields:
   id: Hoxhunt
   version: -1
 configuration:
-- defaultvalue: https://example.com/
-  display: Your server URL
-  name: url
-  required: true
-  type: 0
 - display: API Key
-  additionalinfo: The API Key to use for connection
-  name: apikey
+  additionalinfo: Your personal API token, created in Hoxhunt settings
+  name: api_key
   required: true
   type: 4
-- display: Trust any certificate (not secure)
-  name: insecure
+- defaultvalue: https://app.hoxhunt.com/graphql-external
+  display: Hoxhunt API URL
+  name: api_url
   required: false
-  type: 8
-- display: Use system proxy settings
-  name: proxy
+  type: 0
+- defaultvalue: 200
+  display: Maximum amount of objects the integration commands can fetch at once
+  name: max_fetch
   required: false
-  type: 8
-description: '[Enter a comprehensive, yet concise, description of what the integration
-  does, what use cases it is designed for, etc.]'
+  type: 0
+description: 'Ingest user-reported phishing, email compromise, or other similar incidents from the Hoxhunt platform.'
+detaileddescription: 'Use this integration to retrieve collections of user-reported Threats (Incidents) as well as
+  Threats associated with a single Incident. To use this integration, you need a Hoxhunt admin user account and an
+  API key.'
 display: Hoxhunt
 name: Hoxhunt
 script:
+  script: ''
   commands:
-  - arguments:
-    - default: false
-      description: '[Enter a description of the argument, including any important
-        information users need to know, for example, default values.]'
+  - name: hoxhunt-get-incidents
+    description: 'Fetches a list of Hoxhunt Incident objects using supplied arguments.'
+    arguments:
+    - name: is_escalated
+      description: 'Whether the command should fetch Incidents escalated by Hoxhunt or not. Use a boolean value,
+        or leave empty to fetch both escalated and non-escalated Incidents.'
+      default: false
       isArray: false
-      name: dummy
-      required: true
       secret: false
-    deprecated: false
-    description: '[Enter a description of the command, including any important information
-      users need to know, for example required permissions.]'
-    execution: false
-    name: baseintegration-dummy
+      required: false
+    - name: first_reported_at
+      description: 'Filter Incidents that were first reported after this time. Use an ISO 8601 timestamp format
+        or timeago-style, i.e. "2 weeks".'
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: last_reported_at
+      description: 'Filter Incidents that were last reported after this time. Use an ISO 8601 timestamp format
+        or timeago-style, i.e. "2 weeks".'
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: sort_by
+      description: 'Field to sort Incidents by. Possible values: CreatedAt, UpdatedAt. Prefix with "-" for reverse order. CreatedAt by default (oldest by creation first). '
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: page_size
+      description: 'Amount of Incidents to fetch at once. Defaults to the max_fetch integration parameter.'
+      default: false
+      isArray: false
+      secret: false
+      required: false
+    - name: page
+      description: 'Set of Incidents to fetch. Defaults to 1.'
+      default: false
+      isArray: false
+      secret: false
+      required: false
     outputs:
-    - contextPath: BaseIntegration.Output
-      description: '[Enter a description of the data returned in this output.]'
+    - contextPath: Hoxhunt.Incident.Id
+      description: 'Machine-generated ID of the Incident'
       type: String
-  isfetch: false
-  runonce: false
-  script: '-'
+    - contextPath: Hoxhunt.Incident.HumanReadableId
+      description: 'Human-readable ID of the Incident'
+      type: String
+    - contextPath: Hoxhunt.Incident.CreatedAt
+      description: 'ISO 8601 timestamp string of when the Incident was created'
+      type: String
+    - contextPath: Hoxhunt.Incident.UpdatedAt
+      description: 'ISO 8601 timestamp string of when the Incident was last updated'
+      type: String
+    - contextPath: Hoxhunt.Incident.FirstReportedAt
+      description: 'ISO 8601 timestamp string of when the Incident was first reported'
+      type: String
+    - contextPath: Hoxhunt.Incident.LastReportedAt
+      description: 'ISO 8601 timestamp string of when the Incident was last reported'
+      type: String
+    - contextPath: Hoxhunt.Incident.Type
+      description: 'Incident type. Possible values: "USER_ACTED_ON_THREAT", "BUSINESS_EMAIL_COMPROMISE", or "CAMPAIGN"'
+      type: String
+    - contextPath: Hoxhunt.Incident.Severity
+      description: 'Incident severity. Possible values: "PHISH", "SPEAR", or "COMPROMISED_EMAIL"'
+      type: String
+    - contextPath: Hoxhunt.Incident.State
+      description: 'Incident state. Possible values: "OPEN"'
+      type: String
+    - contextPath: Hoxhunt.Incident.ThreatCount
+      description: 'Amount of Threats associated with this Incident. For Incidents with type "USER_ACTED_ON_THREAT", this is always 1'
+      type: String
+    - contextPath: Hoxhunt.Incident.EscalatedAt
+      description: 'ISO 8601 timestamp string of when the Incident was escalated by Hoxhunt. If the Incident is not escalated, this field is NULL'
+      type: String
+    - contextPath: Hoxhunt.Incident.EscalationThreshold
+      description: 'The amount of Threats that caused the Incident to be escalated. If the Incident is not escalated, or if its Type is "USER_ACTED_ON_THREAT", this field is NULL'
+      type: String
   type: python
   subtype: python3
-  dockerimage: demisto/python3:3.9.4.18682
-fromversion: 5.0.0
+fromversion: 5.5.0
 tests:
-- No tests (auto formatted)
+- No tests
