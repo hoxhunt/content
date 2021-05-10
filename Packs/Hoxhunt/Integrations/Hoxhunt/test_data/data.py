@@ -78,10 +78,10 @@ get_incident_threats_result = {
                         },
                         'userModifiers': {
                             'userActedOnThreat': True,
-                            'repliedToEmail': True,
+                            'repliedToEmail': None,
                             'downloadedFile': True,
-                            'openedAttachment': True,
-                            'visitedLink': True,
+                            'openedAttachment': False,
+                            'visitedLink': None,
                             'enteredCredentials': True,
                             'userMarkedAsSpam': False,
                             'other': True

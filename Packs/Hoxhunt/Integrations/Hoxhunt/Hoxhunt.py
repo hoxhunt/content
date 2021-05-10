@@ -381,7 +381,7 @@ def convert_threat(hoxhunt_threat: dict) -> dict:
     links_data = hoxhunt_threat['enrichments']['links'] or []
 
     user_modifiers_data = {
-        key.replace('user', ''): value
+        key.replace('user', ''): value or False
         for key, value in (hoxhunt_threat['userModifiers'] or {
             attr: False for attr in (
                 'userActedOnThreat', 'repliedToEmail', 'downloadedFile', 'openedAttachment', 'visitedLink',
@@ -462,12 +462,16 @@ def get_incident_threats_command(
     page_size = args_validator.validate_int('page_size') or params_validator.validate_int('max_fetch') or client.MAX_PAGE_SIZE
     page = args_validator.validate_int('page') or 1
 
-    raw_response = client.do_fetch_incident_threats_request(
-        incident_id=incident_id,
-        sort=sort_by,
-        first=page_size,
-        skip=(page - 1) * page_size
-    )
+    try:
+        raw_response = client.do_fetch_incident_threats_request(
+            incident_id=incident_id,
+            sort=sort_by,
+            first=page_size,
+            skip=(page - 1) * page_size
+        )
+    except IndexError:
+        raise Exception(f'Hoxhunt.Incident `{incident_id}` not found.')
+
     outputs = [convert_threat(threat) for threat in raw_response]
 
     return CommandResults(

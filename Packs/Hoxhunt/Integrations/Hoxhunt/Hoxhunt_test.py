@@ -289,7 +289,14 @@ def test_convert_threat_func():
     xsoar_threat = convert_threat(hoxhunt_threat)
 
     _compare_keys(xsoar_threat)
-    assert list(xsoar_threat['UserModifiers'].values()) == list(hoxhunt_threat['userModifiers'].values())
+    original_values = list(hoxhunt_threat['userModifiers'].values())
+    converted_values = list(xsoar_threat['UserModifiers'].values())
+
+    for idx, converted_value in enumerate(converted_values):
+        original_value = original_values[idx]
+        if original_value is None:
+            original_value = False
+        assert original_value == converted_value
 
     without_user_modifiers_hoxhunt_threat = deepcopy(hoxhunt_threat)
     without_user_modifiers_hoxhunt_threat.update({'userModifiers': None})
@@ -351,3 +358,15 @@ def test_hoxhunt_get_incident_threats_command(requests_mock):
     assert results.outputs_key_field == 'Id'
     assert results.outputs == outputs
     assert results.raw_response == raw_response
+
+
+def test_hoxhunt_get_incidents_threat_command_invalid_incident_id(mocker):
+    from Hoxhunt import HoxhuntAPIClient, get_incident_threats_command
+
+    client = HoxhuntAPIClient(**TEST_CLIENT_KWARGS)
+    mocker.patch.object(client, 'do_fetch_incident_threats_request', side_effect=IndexError)
+
+    with pytest.raises(Exception):
+        get_incident_threats_command(client, args={
+            'incident_id': 'invalid'
+        }, params={})
